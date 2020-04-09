@@ -1,2 +1,2 @@
 # particle-crowding
-Hard disk particles undergoing elastic collisions and growth
+Solid disk particles undergoing elastic collisions and growth

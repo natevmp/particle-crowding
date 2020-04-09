@@ -56,7 +56,6 @@ end
 function collisionFinder(positions_dim_id::AbstractArray{T, 2} where T,
                             locations_dim_id::AbstractArray{T, 2} where T,
                             collisionRadius::Float64, bounds::Bounds)
-    # tree = BallTree(positions_dim_id, Euclidean())
     tree = BallTree(positions_dim_id, PeriodicEuclidean([bounds.xLen, bounds.yLen]))
     return inrange(tree, locations_dim_id, collisionRadius)
 end

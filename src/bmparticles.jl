@@ -9,10 +9,11 @@ module BParts
 export Cell, Arena, evolveArena, Bounds, moveCell!, buildArena, buildRandArena, nestfor
 
 using StaticArrays
+using ElasticArrays
 using LinearAlgebra
 using Distances
 using NearestNeighbors
-using Random
+using Random, Distributions, PoissonRandom
 using Plots
 
 
@@ -48,6 +49,7 @@ struct Bounds
 end
 
 struct Arena{T<:AbstractArray{C,1} where C<:Cell, B<:Bounds}
+    # Array containing all cells in the population. A cell's index in the array is its ID
     cellsList::T
     bounds::B
 end
@@ -56,6 +58,7 @@ include("arenabuilder.jl")
 include("positions.jl")
 include("movement.jl")
 include("collisions.jl")
+include("growth.jl")
 include("scientist.jl")
 include("util.jl")
 

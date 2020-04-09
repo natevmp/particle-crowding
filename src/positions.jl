@@ -29,6 +29,14 @@ function cellPositions_DIM_ID(arena::Arena)
     return positions_dim_id
 end
 
+function cellPositions_DIM_ID(cellsList_c::Vector{C} where C<:Cell)
+    positions_dim_id = Array{Float64,2}(undef, 2, length(cellsList_c))
+    for (i, cell) in enumerate(cellsList_c)
+        positions_dim_id[:,i] = cell.pos
+    end
+    return positions_dim_id
+end
+
 function cellPositions_DIM_ID(arena::Arena, cellsList_id::Vector{Int})
     positions_dim_id = cellPositions_DIM_ID(arena)[:, cellsList_id]
     return positions_dim_id

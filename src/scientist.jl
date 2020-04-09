@@ -6,40 +6,51 @@ function kineticEnergy(arena::Arena)
     sum(v -> norm(v)^2/2, [c.vel for c in arena.cellsList])
 end
 
-function snapshotPos(arena::Arena, t::Int, posTime_id_t_dim::Array{Float64, 3})
+function snapshotPos(arena::Arena, t::Int, posTime_t_dim_id::AbstractArray{Float64, 3})
     for (id, cell) in enumerate(arena.cellsList)
-        posTime_id_t_dim[id, t, :] = cell.pos
+        posTime_t_dim_id[t, :, id] = cell.pos
     end
 end
 
-function snapshotVel(arena::Arena, t::Int, velTime_id_t_dim::Array{Float64, 3})
+function snapshotVel(arena::Arena, t::Int, velTime_t_dim_id::AbstractArray{Float64, 3})
     for (id, cell) in enumerate(arena.cellsList)
-        velTime_id_t_dim[id, t, :] = cell.vel
+        velTime_t_dim_id[t, :, id] = cell.vel
     end
 end
 
-function snapshotCells(arena::Arena, t::Int, posTime_id_t_dim::Array{Float64, 3}, velTime_id_t_dim::Array{Float64, 3})
-    for (id, cell) in enumerate(arena.cellsList)
-        posTime_id_t_dim[id, t, :] = cell.pos
-        velTime_id_t_dim[id, t, :] = cell.vel
+function snapshotCells!(posTime_t_dim_id::AbstractArray{Float64, 3}, velTime_t_dim_id::AbstractArray{Float64, 3}, 
+                        arena::Arena, t::Int)
+    
+    if length(arena.cellsList) > size(posTime_t_dim_id)[3]
+        nBirths = length(arena.cellsList) - size(posTime_t_dim_id)[3]
+        tDim = size(posTime_t_dim_id)[1]
+        pDim = size(posTime_t_dim_id)[2]
+        append!(posTime_t_dim_id, fill(NaN, tDim, pDim, nBirths))
+        append!(velTime_t_dim_id, fill(NaN, tDim, pDim, nBirths))
     end
+    for (id, cell) in enumerate(arena.cellsList)
+        posTime_t_dim_id[t, :, id] = cell.pos
+        velTime_t_dim_id[t, :, id] = cell.vel
+    end
+    return nothing
 end
 
-function snapshotCells!(arena::Arena, t::Int, cells_Time_ID::Vector{Vector{Cell}})
+function snapshotCells!(cells_Time_ID::Vector{Vector{Cell}}, arena::Arena, t::Int)
     cells_Time_ID[t] = arena.cellsList
+    return nothing
 end
 
-function speedCalc(velTime_id_t_dim::Array{Float64, 3})
-    speedTime_id_t = Array{Float64}(undef, size(velTime_id_t_dim)[1], size(velTime_id_t_dim)[2])
-    for id in 1:size(speedTime_id_t, 1)
-        for t in 1:size(speedTime_id_t, 2)
-            speedTime_id_t[id, t] = norm(velTime_id_t_dim[id, t, :])
+function speedCalc(velTime_t_dim_id::AbstractArray{Float64, 3})
+    speedTime_t_id = Array{Float64}(undef, size(velTime_t_dim_id)[1], size(velTime_t_dim_id)[3])
+    for t in 1:size(speedTime_t_id, 1)
+        for id in 1:size(speedTime_t_id, 2)
+            speedTime_t_id[t, id] = norm(velTime_t_dim_id[t, :, id])
         end
     end
-    return speedTime_id_t
+    return speedTime_t_id
 end
 
-function speedCalc_Vardims(velTime_vardims_xy::Array{Float64, N} where N)
+function speedCalc_Vardims(velTime_vardims_xy::AbstractArray{Float64, N} where N)
     vardims = size(velTime_vardims_xy)[1:end-1]
     speedTime_vardims = Array{Float64}(undef, vardims...)
     function assign!(state_vdims, var_vdims, var_vdims_xy, func)
@@ -49,15 +60,16 @@ function speedCalc_Vardims(velTime_vardims_xy::Array{Float64, N} where N)
     return speedTime_vardims
 end
 
-function rayleighDistCompare(velTime_id_t_dim)
-    speed_id_t = BParts.speedCalc(velTime_id_t_dim::Array{Float64, 3})
-    sMean = [sum(speed_id_t[:, t])/size(speed_id_t, 1) for t in 1:size(speed_id_t, 2)]
-    # d = Distributions.fit(Normal, velTime_id_t_dim)
+function rayleighDistCompare(velTime_t_dim_id)
+    speed_t_id = speedCalc(velTime_t_dim_id)
+    # using scipy
     stats = pyimport("scipy.stats")
-    _, rshape = stats.rayleigh.fit(speed_id_t, floc=0)
+    _, rshape = stats.rayleigh.fit(speed_t_id, floc=0)
     rDist = Rayleigh(rshape)
+    # using Distributions -- problem: doesn't ignore NaNs?
+    # rDist = Distributions.fit(Rayleigh, reshape(speed_t_id, :))
+    return rDist
 end
-
 
 function velocityAutocorrelation(cells_T_ID::Vector{Vector{Cell}})
 

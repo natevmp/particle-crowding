@@ -1,6 +1,7 @@
 
 ### ======== Collision Functions ========
 
+"""Perform collisions in a given arena. Return index of collided cells."""
 function collider!(arena::Arena; nbhcut=50)
     collidedCellsList = Int[]
 
@@ -20,6 +21,7 @@ function collider!(arena::Arena; nbhcut=50)
     return collidedCellsList
 end
 
+"""Find collisions and perform collisions in arena. """
 function passThroughNeighborhood(arena::Arena)
     # create neighborhoods
     nbhoods_id = collisionFinder(arena)
@@ -46,6 +48,7 @@ function passThroughNeighborhood(arena::Arena)
     return collidedCellsOut
 end
 
+"""Find earliest collision in higher order (3 or more cells) collisions"""
 function collTimeCompare(arena::Arena, nbh_c::Vararg{Int})
     cellPairsInd_p = getPairs(nbh_c...)
     timepair_tp = [(collTimeCalc(arenaIndsToCells(arena, cpi)..., arena.bounds), cpi)
@@ -53,6 +56,7 @@ function collTimeCompare(arena::Arena, nbh_c::Vararg{Int})
     return sort!(filter!(tp -> tp[1]>0, timepair_tp), rev=true)[1]
 end
 
+"""Search for collisions."""
 function collisionFinder(positions_dim_id::AbstractArray{T, 2} where T,
                             locations_dim_id::AbstractArray{T, 2} where T,
                             collisionRadius::Float64, bounds::Bounds)
@@ -116,6 +120,7 @@ function reverseCellTime!(bounds::Bounds, t::Float64, cells_id::Vararg{Cell})
     return nothing
 end
 
+"""Calculate exact time within timestep when collision took place."""
 function collTimeCalc(cellA::Cell, cellB::Cell, bounds::Bounds)
     # r = cellA.pos .- cellB.pos
     r = connectingVector(cellA.pos, cellB.pos, [bounds.xLen, bounds.yLen])
@@ -128,6 +133,7 @@ function collTimeCalc(cellA::Cell, cellB::Cell, bounds::Bounds)
     end
 end
 
+"""Perform collision of two cells."""
 function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Float64)
     #undo cell overlap
     reverseCellTime!(bounds, tRetc, cellA, cellB)
@@ -150,6 +156,7 @@ function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Float64)
     return nothing
 end
 
+"""Calculate velocities of cell pair after collision."""
 function collVelCalc(velA::MVector{2, Float64}, posA::MVector{2, Float64},
                         velB::MVector{2, Float64}, posB::MVector{2, Float64},
                             period::AbstractVector)

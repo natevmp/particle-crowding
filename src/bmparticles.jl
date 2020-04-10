@@ -6,7 +6,7 @@ bmparticles:
 =#
 
 module BParts
-export Cell, Arena, evolveArena, Bounds, moveCell!, buildArena, buildRandArena, nestfor
+export Cell, Arena, evolveArena!, cultivateArena!, Bounds, moveCell!, buildRandArena
 
 using StaticArrays
 using ElasticArrays
@@ -55,6 +55,7 @@ struct Arena{T<:AbstractArray{C,1} where C<:Cell, B<:Bounds}
 end
 
 include("arenabuilder.jl")
+include("dynamics.jl")
 include("positions.jl")
 include("movement.jl")
 include("collisions.jl")

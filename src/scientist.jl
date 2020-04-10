@@ -76,37 +76,30 @@ function velocityAutocorrelation(cells_T_ID::Vector{Vector{Cell}})
 end
 
 
-function velocityAutocorrelation(vel_id_t_dim::Array{Float64, 3})
+function velocityAutocorrelation(vel_t_dim_id::Array{Float64, 3})
     # vCorr_id_t = zeros(Float64, size(vel_id_t_dim)[1], size(vel_id_t_dim)[2])
-    vCorr_t = zeros(Float64, size(vel_id_t_dim)[2])
-    for t in 1:size(vel_id_t_dim)[2]
-        # vCorr_id_t[:, t] = [ Vel_id_t_dim[id, 1, :] ⋅ vel_id_t_dim[id, t, :] for id in range(size(vel_id_t_dim)[1]) ]
-        vCorr_t[t] = mean([ vel_id_t_dim[id, 1, :] ⋅ vel_id_t_dim[id, t, :] for id in 1:(size(vel_id_t_dim)[1]) ])
+    vCorr_t = zeros(Float64, size(vel_t_dim_id)[1])
+    for t in 1:length(vCorr_t)
+        vCorr_t[t] = mean([ vel_t_dim_id[1, :, id] ⋅ vel_t_dim_id[t, :, id] for id in 1:(size(vel_t_dim_id)[3]) ])
     end
     return vCorr_t
 end
 
-function meanFreePath(vel_id_t_dim::Array{Float64, 3}, dt::Float64)
-    nCells, nTime = size(vel_id_t_dim)[[1,2]]
+function meanFreePath(vel_t_dim_id::AbstractArray{Float64, 3}, dt::Float64)
+    nCells, nTime = size(vel_t_dim_id)[[3,1]]
     pathlengths_l = Vector{Float64}(undef, 0)
     for cellInd in 1:nCells
-        speedCur::Float64 = norm(vel_id_t_dim[cellInd, 1, :])
+        speedCur::Float64 = norm(vel_t_dim_id[1, :, cellInd])
         pathsteps::Integer = 0
         for tInd in 2:nTime
-            if vel_id_t_dim[cellInd, tInd, 1] == vel_id_t_dim[cellInd, tInd-1, 1]
+            # if the x velocity does not change, no collision has occurred
+            if vel_t_dim_id[tInd, 1, cellInd] == vel_t_dim_id[tInd-1, 1, cellInd]
                 pathsteps += 1
-                # println("vxCur: ", vel_id_t_dim[cellInd, tInd, 1])
-                # println("pathsteps: ", pathsteps)
-                # println("speedCur: ", speedCur)
                 continue
             else
                 append!(pathlengths_l, dt * pathsteps * speedCur)
-                speedCur = norm(vel_id_t_dim[cellInd, tInd, :])
+                speedCur = norm(vel_t_dim_id[tInd, :, cellInd])
                 pathsteps = 0
-                # println("========== Collision! ==========")
-                # println("vxCur: ", vel_id_t_dim[cellInd, tInd, 1])
-                # println("pathsteps: ", pathsteps)
-                # println("speedCur: ", speedCur)
             end
         end
     end
@@ -114,11 +107,11 @@ function meanFreePath(vel_id_t_dim::Array{Float64, 3}, dt::Float64)
 end
 
 
-function meanSquaredDisplacement(pos_id_t_dim::Array{Float64, 3}, bperiod::Vector{Float64})
-    nCells, nTime = size(pos_id_t_dim)[[1,2]]
+function meanSquaredDisplacement(pos_t_dim_id::AbstractArray{Float64, 3}, bperiod::Vector{Float64})
+    nCells, nTime = size(pos_t_dim_id)[[3,1]]
     msd_t = Vector{Float64}(undef, nTime)
     for t in 1:nTime
-        msd_t[t] = mean([distance(pos_id_t_dim[cellInd, t, :], pos_id_t_dim[cellInd, 1, :], bperiod)^2
+        msd_t[t] = mean([peuclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[1, :, cellInd], bperiod)^2
                     for cellInd in 1:nCells])
     end
     return msd_t

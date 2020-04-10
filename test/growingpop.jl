@@ -35,7 +35,7 @@ function randArenaEvolve(nCells::Int, steps::Int, growthParams::Tuple; plotting=
     else anim = nothing
     end
     posTime_t_dim_id, velTime_t_dim_id, cells_T_ID = 
-        BParts.evolveArena(arena, steps, growthParams, plotsteps=plotting, animator=anim)
+        evolveArena!(arena, steps, growthParams, plotsteps=plotting, animator=anim)
     if animating
         gif(anim, "anim_2.gif", fps=10)
     end
@@ -60,16 +60,6 @@ sMean_t = [sum(speed_t_id[t, :])/size(speed_t_id, 2)
 
 rDist = BParts.rayleighDistCompare(velTime_t_dim_id)
 
-println(typeof(posTime_t_dim_id))
-println(size(posTime_t_dim_id))
-println(typeof(velTime_t_dim_id))
-println(size(velTime_t_dim_id))
-println(typeof(cells_T_ID))
-println(size(cells_T_ID[end]))
-println(size(speed_t_id))
-println(size(sMean_t))
-
-
 h = histogram(vec(speed_t_id[:,:]), bins=range(0, 0.25, length=50), 
     normalize=true, ylims=(0,14), xlabel="speed", 
     ylabel="distribution", label="simulation")
@@ -84,12 +74,6 @@ display(h)
 # println(mfpTheory)
 # friction = Theorist.friction(mfpExp, eKinAv)
 # friction2 = Theorist.friction(mfpTheory, eKinAv)
-
-
-
-
-
-
 
 
 end

@@ -1,7 +1,10 @@
 
 
-
+"""Add new cells to given arena according to specified growth rate."""
 function cultivateArena!(arena::Arena, dt::Real, rate::Real, r::Real, vStd::Real)
+
+    nPop = length(arena.cellsList)
+    
     # draw number of new cells in timestep
     n = pois_rand(rate*dt)
     if n > 0

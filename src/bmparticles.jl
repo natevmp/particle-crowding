@@ -14,6 +14,7 @@ using LinearAlgebra
 using Distances
 using NearestNeighbors
 using Random, Distributions, PoissonRandom
+using ProgressMeter
 using Plots
 
 

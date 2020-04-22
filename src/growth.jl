@@ -1,34 +1,48 @@
 
 
 """Add new cells to given arena according to specified growth rate."""
-function cultivateArena!(arena::Arena, dt::Real, rate::Real, r::Real, vStd::Real)
+function cultivateArena!(arena::Arena, dt::Real, rateFunc::Function, r::Real, vStd::Real)
 
     nPop = length(arena.cellsList)
     
     # draw number of new cells in timestep
-    n = pois_rand(rate*dt)
+    n = pois_rand(rateFunc(nPop)*dt)
     if n > 0
         newcells_c = Vector{Cell}(undef, n)
         #create n random cells
         for cid in 1:n
-            newcells_c[cid] = randCell(arena.bounds, r, vStd)
+            newcells_c[cid] = randCell(arena.bounds, r, vStd, fixSpeed=true)
         end
         
         # === find and fix potential overlaps ===
         # - create nearest neighbor tree of existing cell cellPositions_DIM_ID
-        tree = BallTree(cellPositions_DIM_ID(arena), PeriodicEuclidean([arena.bounds.xLen, arena.bounds.yLen]))
-        # - check for overlaps
+        oldCellTree = BallTree(cellPositions_DIM_ID(arena), PeriodicEuclidean([arena.bounds.xLen, arena.bounds.yLen]))
+        
         verifiedBool_c = falses(n)
+
         while sum(verifiedBool_c)<n
-            unverifiedId_c = findall(.!verifiedBool_c)
-            # calling knn for multiple points at the same time is more efficient than calling it for each point seperately
-            idxs, dists = knn(tree, cellPositions_DIM_ID(newcells_c[unverifiedId_c]), 1)
-            for (dInd, dist) in enumerate(dists)
-                if dist[1] > collisionCrossSection(arena)
-                    verifiedBool_c[unverifiedId_c[dInd]] = true
-                else
+            for (i, cell) in enumerate(newcells_c)
+                # skip step if cell is already verified
+                if verifiedBool_c[i]
+                    continue
+                end
+
+                # get nearest existing cell
+                nearestDistOld = knn(oldCellTree, cell.pos, 1)[2][1]
+
+                # get nearest verified new cell
+                newCellsDists_c = map(cellB -> cellDistance(cell, cellB, arena.bounds), newcells_c[verifiedBool_c])
+                if length(newCellsDists_c)>0
+                    sort!(newCellsDists_c)
+                    nearestDistNew = newCellsDists_c[1]
+                else nearestDistNew = NaN end
+
+                # check if cell does not overlap existing cells, or verified new cells
+                if nearestDistOld < collisionCrossSection(arena) || nearestDistNew < collisionCrossSection(arena)
                     #change cell's location
-                    randPos!(newcells_c[unverifiedId_c[dInd]], arena.bounds)
+                    randPos!(newcells_c[i], arena.bounds)
+                else
+                    verifiedBool_c[i] = true
                 end
             end
         end
@@ -39,3 +53,6 @@ function cultivateArena!(arena::Arena, dt::Real, rate::Real, r::Real, vStd::Real
 
     return n
 end
+
+logisticRate(n::Real, ρ::Real, k::Real) = n*ρ*(1-n/k)
+exponentialRate(n::Real, ρ::Real) = n*ρ

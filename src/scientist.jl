@@ -6,27 +6,27 @@ function kineticEnergy(arena::Arena)
     sum(v -> norm(v)^2/2, [c.vel for c in arena.cellsList])
 end
 
-function snapshotPos(arena::Arena, t::Int, posTime_t_dim_id::AbstractArray{Float64, 3})
+function snapshotPos(arena::Arena, t::Int, posTime_t_dim_id::AbstractArray)
     for (id, cell) in enumerate(arena.cellsList)
         posTime_t_dim_id[t, :, id] = cell.pos
     end
 end
 
-function snapshotVel(arena::Arena, t::Int, velTime_t_dim_id::AbstractArray{Float64, 3})
+function snapshotVel(arena::Arena, t::Int, velTime_t_dim_id::AbstractArray)
     for (id, cell) in enumerate(arena.cellsList)
         velTime_t_dim_id[t, :, id] = cell.vel
     end
 end
 
-function snapshotCells!(posTime_t_dim_id::AbstractArray{Float64, 3}, velTime_t_dim_id::AbstractArray{Float64, 3}, 
+function snapshotCells!(posTime_t_dim_id::AbstractArray, velTime_t_dim_id::AbstractArray, 
                         arena::Arena, t::Int)
     
     if length(arena.cellsList) > size(posTime_t_dim_id)[3]
         nBirths = length(arena.cellsList) - size(posTime_t_dim_id)[3]
         tDim = size(posTime_t_dim_id)[1]
         pDim = size(posTime_t_dim_id)[2]
-        append!(posTime_t_dim_id, fill(NaN, tDim, pDim, nBirths))
-        append!(velTime_t_dim_id, fill(NaN, tDim, pDim, nBirths))
+        append!(posTime_t_dim_id, fill(missing, tDim, pDim, nBirths))
+        append!(velTime_t_dim_id, fill(missing, tDim, pDim, nBirths))
     end
     for (id, cell) in enumerate(arena.cellsList)
         posTime_t_dim_id[t, :, id] = cell.pos
@@ -40,7 +40,7 @@ function snapshotCells!(cells_Time_ID::Vector{Vector{Cell}}, arena::Arena, t::In
     return nothing
 end
 
-function speedCalc(velTime_t_dim_id::AbstractArray{Float64, 3})
+function speedCalc(velTime_t_dim_id::AbstractArray)
     speedTime_t_id = Array{Float64}(undef, size(velTime_t_dim_id)[1], size(velTime_t_dim_id)[3])
     for t in 1:size(speedTime_t_id, 1)
         for id in 1:size(speedTime_t_id, 2)
@@ -76,7 +76,7 @@ function velocityAutocorrelation(cells_T_ID::Vector{Vector{Cell}})
 end
 
 
-function velocityAutocorrelation(vel_t_dim_id::Array{Float64, 3})
+function velocityAutocorrelation(vel_t_dim_id::AbstractArray)
     # vCorr_id_t = zeros(Float64, size(vel_id_t_dim)[1], size(vel_id_t_dim)[2])
     vCorr_t = zeros(Float64, size(vel_t_dim_id)[1])
     for t in 1:length(vCorr_t)
@@ -85,7 +85,7 @@ function velocityAutocorrelation(vel_t_dim_id::Array{Float64, 3})
     return vCorr_t
 end
 
-function meanFreePath(vel_t_dim_id::AbstractArray{Float64, 3}, dt::Float64)
+function meanFreePath(vel_t_dim_id::AbstractArray, dt::Float64)
     nCells, nTime = size(vel_t_dim_id)[[3,1]]
     pathlengths_l = Vector{Float64}(undef, 0)
     for cellInd in 1:nCells
@@ -107,12 +107,26 @@ function meanFreePath(vel_t_dim_id::AbstractArray{Float64, 3}, dt::Float64)
 end
 
 
-function meanSquaredDisplacement(pos_t_dim_id::AbstractArray{Float64, 3}, bperiod::Vector{Float64})
+function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bperiod::Vector{Float64})
     nCells, nTime = size(pos_t_dim_id)[[3,1]]
     msd_t = Vector{Float64}(undef, nTime)
     for t in 1:nTime
-        msd_t[t] = mean([peuclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[1, :, cellInd], bperiod)^2
-                    for cellInd in 1:nCells])
+        sd_CID_t = skipmissing(
+            [peuclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[1, :, cellInd], bperiod)^2
+            for cellInd in 1:nCells])
+        msd_t[t] = mean(sd_CID_t)
+    end
+    return msd_t
+end
+
+function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bounds::Bounds)
+    nCells, nTime = size(pos_t_dim_id)[[3,1]]
+    msd_t = Vector{Float64}(undef, nTime)
+    for t in 1:nTime
+        sd_CID_t = skipmissing(
+            [peuclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[1, :, cellInd], [bounds.xLen, bounds.yLen])^2
+            for cellInd in 1:nCells])
+        msd_t[t] = mean(sd_CID_t)
     end
     return msd_t
 end

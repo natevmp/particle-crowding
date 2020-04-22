@@ -12,16 +12,12 @@ using Plots
 using Distributions
 using LaTeXStrings
 using Debugger
-# pyplot()
+gr()
 
-function randArenaEvolve(nCells::Int, steps::Int, growthParams::Tuple; plotting=true, animating=false)
+function randArenaEvolve(nCells::Int, steps::Int, growthParams::Union{Tuple, Nothing}=nothing; plotting=false, animating=false)
     arena = buildRandArena(Bounds((0.,10.), (0.,10.)), nCells, 0.08, 0.05, fixSpeed=false)
-    BParts.fixArenaOverlaps!(arena)
 
     arenaCellPositions_dim_id = BParts.cellPositions_DIM_ID(arena)
-    # s = scatter(arenaCellPositions_dim_id[1,:], arenaCellPositions_dim_id[2,:],
-    #             xlims = (0,10), ylims = (0,10), legend=false)
-    # display(s)
 
     eKin = BParts.kineticEnergy(arena)
     println("::::: Initial total kinetic energy: ", eKin)
@@ -37,7 +33,7 @@ function randArenaEvolve(nCells::Int, steps::Int, growthParams::Tuple; plotting=
     posTime_t_dim_id, velTime_t_dim_id, cells_T_ID = 
         evolveArena!(arena, steps, growthParams, plotsteps=plotting, animator=anim)
     if animating
-        gif(anim, "anim_2.gif", fps=10)
+        gif(anim, "figures/animation.gif", fps=10)
     end
 
     eKin = BParts.kineticEnergy(arena)
@@ -46,26 +42,38 @@ function randArenaEvolve(nCells::Int, steps::Int, growthParams::Tuple; plotting=
     return posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, eKin
 end
 
-nCells = 100
-evolveTime = 50
-growthParams = (1., 0.08, 0.05)
-posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, eKin = 
-    randArenaEvolve(nCells, evolveTime, growthParams, plotting=false)
 
+
+
+
+
+nCells = 50
+evolveTime = 100
+logisticRate(n::Real, ρ::Real, k::Real) = n*ρ*(1-n/k)
+exponentialRate(n::Real, ρ::Real) = n*ρ
+growthParams = (n->logisticRate(n, 0.06, 500), 0.08, 0.05)
+posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, eKin = 
+    randArenaEvolve(nCells, evolveTime, growthParams, animating=false)
 # eKinAv = eKin / nCells
 
 speed_t_id = BParts.speedCalc(velTime_t_dim_id)
-sMean_t = [sum(speed_t_id[t, :])/size(speed_t_id, 2) 
-            for t in 1:size(speed_t_id, 1)]
+sMean_t = [sum(speed_t_id[t, :])/size(speed_t_id, 2) for t in 1:size(speed_t_id, 1)]
+
 
 rDist = BParts.rayleighDistCompare(velTime_t_dim_id)
 
-h = histogram(vec(speed_t_id[:,:]), bins=range(0, 0.25, length=50), 
-    normalize=true, ylims=(0,14), xlabel="speed", 
-    ylabel="distribution", label="simulation")
-plot!(range(0, 0.25, length=100), pdf.(rDist, range(0, 0.25, length=100)), label="fit")
-# plot!(range(0, 0.25, length=100), pdf.(Rayleigh(sqrt(eKinAv)), range(0, 0.25, length=100)), line=(:dash), label="theory")
-display(h)
+p2 = plot(map(length, cells_T_ID))
+xlabel!("time")
+ylabel!("number of cells")
+display(p2)
+
+
+# h = histogram(vec(speed_t_id[:,:]), bins=range(0, 0.25, length=50), 
+#     normalize=true, ylims=(0,14), xlabel="speed", 
+#     ylabel="distribution", label="simulation")
+# plot!(range(0, 0.25, length=100), pdf.(rDist, range(0, 0.25, length=100)), label="fit")
+# # plot!(range(0, 0.25, length=100), pdf.(Rayleigh(sqrt(eKinAv)), range(0, 0.25, length=100)), line=(:dash), label="theory")
+# display(h)
 # savefig(h, "speedDist.png")
 # savefig(h, "speedDist.svg")
 # mfpExp = BParts.meanFreePath(velTime_id_t_dim, 1.)

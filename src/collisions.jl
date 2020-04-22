@@ -88,22 +88,6 @@ function collCheck!(nbh::Vector, collidedCellsList::Array{Int})
     end
 end
 
-# function nbhComposer!(nbh::Vector, collidedCellsList::Array{Int},
-#                         nbhoods_id::AbstractVector{V} where V)
-#     if length(nbh) < 2
-#         return false
-#     else
-#         removeDoubleCounts!(nbh, collidedCellsList)
-#         if length(nbh) < 2
-#             return false
-#         else
-#             # take union of all neighborhoods of cells in current nbh
-#             union!(nbh, (nbhoods_id[i] for i in nbh)...)
-#             return true
-#         end
-#     end
-# end
-
 function nbhComposer!(nbh::Vector, nbhoods_id::AbstractVector{V} where V)
     # take union of all neighborhoods of cells in current nbh
     union!(nbh, (nbhoods_id[i] for i in nbh)...)
@@ -149,9 +133,9 @@ function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Float64)
         moveCell!(cellA, bounds, tRetc)
         moveCell!(cellB, bounds, tRetc)
     else
-        println("anomalous collision time ", tRetc, " found in step time: ", 1)
-        # println("A position: ", cellA.pos)
-        # println("B position: ", cellB.pos)
+        println("anomalous collision time ", tRetc, " found in step time ", 1)
+        println("A position: ", cellA.pos, "; A speed: ", norm(cellA.vel))
+        println("B position: ", cellB.pos, "; B speed: ", norm(cellB.vel))
     end
     return nothing
 end
@@ -168,7 +152,7 @@ function unoverlapPair!(cellA::Cell, cellB::Cell, bounds::Bounds)
     rAxis = cellA.pos .- cellB.pos
     ovFrac = ((cellA.radius + cellB.radius)-norm(rAxis))/norm(rAxis)
     if ovFrac < 0
-        println("Error unoverlapping cells: Cells do not overlap.")
+        # println("Error unoverlapping cells: Cells do not overlap.")
         return nothing
     end
     # println("initial distance between cells: ", cellDistance(cellA, cellB))

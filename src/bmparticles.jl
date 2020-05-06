@@ -37,7 +37,7 @@ end
 #     end
 # end
 struct Bounds
-    x::Tuple{Real,Real}
+    x::Tuple{Real, Real}
     y::Tuple{Real, Real}
     xLen::Real
     yLen::Real

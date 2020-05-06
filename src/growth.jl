@@ -1,7 +1,7 @@
 
 
 """Add new cells to given arena according to specified growth rate."""
-function cultivateArena!(arena::Arena, dt::Real, rateFunc::Function, r::Real, vStd::Real)
+function cultivateArena!(arena::Arena, dt::Real, rateFunc::Function, r::Real, speed::Real)
 
     nPop = length(arena.cellsList)
     
@@ -11,7 +11,7 @@ function cultivateArena!(arena::Arena, dt::Real, rateFunc::Function, r::Real, vS
         newcells_c = Vector{Cell}(undef, n)
         #create n random cells
         for cid in 1:n
-            newcells_c[cid] = randCell(arena.bounds, r, vStd, fixSpeed=true)
+            newcells_c[cid] = randCell(arena.bounds, r, speed, fixSpeed=false)
         end
         
         # === find and fix potential overlaps ===

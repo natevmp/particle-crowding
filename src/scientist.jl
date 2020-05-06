@@ -2,6 +2,51 @@ using Distributions
 using PyCall
 using Statistics
 
+# ===== Running experiment =====
+
+
+"""Construct an arena with randomly distributed cells and evolve it for a specified time."""
+function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing; plotting=false, animating=false)
+    
+    arena = buildRandArena(arenaParams["bounds"], nCells, arenaParams["radius"], arenaParams["speed"], fixSpeed=false)
+    
+    arenaCellPositions_dim_id = BParts.cellPositions_DIM_ID(arena)
+
+    eKin = BParts.kineticEnergy(arena)
+    # println("::::: Initial total kinetic energy: ", eKin)
+
+    if animating
+        anim = Animation()
+    else anim = nothing
+    end
+    
+    if isnothing(growthParams)
+        evolveGrowthParams = nothing
+    else
+        logisticRate(n::Real, ρ::Real, k::Real) = n*ρ*(1-n/k)
+        evolveGrowthParams = 
+            Dict(
+                "rateFunc"=> n->logisticRate(n, growthParams["ρ"], growthParams["k"]),
+                "radius"=> arenaParams["radius"],
+                "speed"=> arenaParams["speed"]
+            )
+    end
+
+    posTime_t_dim_id, velTime_t_dim_id, cells_T_ID = 
+        evolveArena!(arena, steps, evolveGrowthParams, plotsteps=plotting, animator=anim)
+    
+    if animating
+        gif(anim, "figures/animation.gif", fps=10)
+    end
+
+    eKin = BParts.kineticEnergy(arena)
+    # println("::::: Final total kinetic energy: ", eKin)
+
+    return arena, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID
+end
+
+# ===== Analysing experiments =====
+
 function kineticEnergy(arena::Arena)
     sum(v -> norm(v)^2/2, [c.vel for c in arena.cellsList])
 end
@@ -60,21 +105,18 @@ function speedCalc_Vardims(velTime_vardims_xy::AbstractArray{Float64, N} where N
     return speedTime_vardims
 end
 
-function rayleighDistCompare(velTime_t_dim_id)
+function rayleighDistFit(velTime_t_dim_id::AbstractArray)
     speed_t_id = speedCalc(velTime_t_dim_id)
-    # using scipy
     stats = pyimport("scipy.stats")
     _, rshape = stats.rayleigh.fit(speed_t_id, floc=0)
     rDist = Rayleigh(rshape)
-    # using Distributions -- problem: doesn't ignore NaNs?
-    # rDist = Distributions.fit(Rayleigh, reshape(speed_t_id, :))
     return rDist
 end
+
 
 function velocityAutocorrelation(cells_T_ID::Vector{Vector{Cell}})
 
 end
-
 
 function velocityAutocorrelation(vel_t_dim_id::AbstractArray)
     # vCorr_id_t = zeros(Float64, size(vel_id_t_dim)[1], size(vel_id_t_dim)[2])
@@ -106,8 +148,7 @@ function meanFreePath(vel_t_dim_id::AbstractArray, dt::Float64)
     return mean(pathlengths_l)
 end
 
-
-function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bperiod::Vector{Float64})
+function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bperiod)
     nCells, nTime = size(pos_t_dim_id)[[3,1]]
     msd_t = Vector{Float64}(undef, nTime)
     for t in 1:nTime

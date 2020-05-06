@@ -1,36 +1,48 @@
 ### ======== dynamics functions ========
 
-# function evolveArena(arena::Arena, steps::Int; plotsteps=false, animator::Union{Animation, Nothing}=nothing)
+# function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Tuple, Nothing}=nothing; plotsteps=false,
+#     animator::Union{Animation, Nothing}=nothing)
 
-#     posTime_id_t_dim = fill(NaN, length(arena.cellsList), steps, 2)
-#     velTime_id_t_dim = fill(NaN, length(arena.cellsList), steps, 2)
+#     posTime_t_dim_id = ElasticArray{Union{Float64, Missing}}(fill(missing, steps, 2, length(arena.cellsList)))
+#     velTime_t_dim_id = ElasticArray{Union{Float64, Missing}}(fill(missing, steps, 2, length(arena.cellsList)))
+
 #     cells_T_ID = Vector{Vector{Cell}}(undef, steps)
 
-#     for t in 1:steps
+
+#     @showprogress for t in 1:steps
+
+#         # == Movement ==
 #         for cell in arena.cellsList
 #             moveCell!(cell, arena.bounds)
 #         end
 
+#         # == Collisions ==
 #         collidedCellsList_id = collider!(arena)
-#         if plotsteps||(animator!==nothing)
-#             plotArena(arena, collidedCellsList_id, displayPlot=plotsteps, animator=animator)
+
+#         # == Growth ==
+#         if growthParams != nothing
+#             nDaughters = cultivateArena!(arena, 1., growthParams...)
 #         end
 
-#         snapshotCells!(posTime_id_t_dim, velTime_id_t_dim, arena, t)
+#         # == Plot data ==
+#         if plotsteps||(animator!==nothing)
+#             plotArena(arena, collidedCellsList_id, nDaughters, displayPlot=plotsteps, animator=animator)
+#         end
+
+#         # == record data ==
+#         snapshotCells!(posTime_t_dim_id, velTime_t_dim_id, arena, t)
 #         snapshotCells!(cells_T_ID, arena, t)
 #     end
 #     # gif(anim, "anim_2.gif", fps=15)
-#     return posTime_id_t_dim, velTime_id_t_dim, cells_T_ID
+#     return posTime_t_dim_id, velTime_t_dim_id, cells_T_ID
 # end
 
-function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Tuple, Nothing}=nothing; plotsteps=false,
+
+function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Dict, Nothing}=nothing; plotsteps=false,
     animator::Union{Animation, Nothing}=nothing)
 
-    # posTime_id_t_dim = fill(NaN, length(arena.cellsList), steps, 2)
-    # velTime_id_t_dim = fill(NaN, length(arena.cellsList), steps, 2)
-
-    posTime_t_dim_id = ElasticArray{Union{Real, Missing}}(fill(missing, steps, 2, length(arena.cellsList)))
-    velTime_t_dim_id = ElasticArray{Union{Real, Missing}}(fill(missing, steps, 2, length(arena.cellsList)))
+    posTime_t_dim_id = ElasticArray{Union{Float64, Missing}}(fill(missing, steps, 2, length(arena.cellsList)))
+    velTime_t_dim_id = ElasticArray{Union{Float64, Missing}}(fill(missing, steps, 2, length(arena.cellsList)))
 
     cells_T_ID = Vector{Vector{Cell}}(undef, steps)
 
@@ -47,7 +59,7 @@ function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Tuple, Nothi
 
         # == Growth ==
         if growthParams != nothing
-            nDaughters = cultivateArena!(arena, 1., growthParams...)
+            nDaughters = cultivateArena!(arena, 1., growthParams["rateFunc"], growthParams["radius"], growthParams["speed"])
         end
 
         # == Plot data ==

@@ -134,8 +134,8 @@ function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Float64)
         moveCell!(cellB, bounds, tRetc)
     else
         println("anomalous collision time ", tRetc, " found in step time ", 1)
-        println("A position: ", cellA.pos, "; A speed: ", norm(cellA.vel))
-        println("B position: ", cellB.pos, "; B speed: ", norm(cellB.vel))
+        # println("A position: ", cellA.pos, "; A speed: ", norm(cellA.vel))
+        # println("B position: ", cellB.pos, "; B speed: ", norm(cellB.vel))
     end
     return nothing
 end

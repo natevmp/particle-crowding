@@ -2,17 +2,31 @@
 ### ======== Initializing functions ========
 
 """Build a new arena with a specified number of randomly placed cells."""
-function buildRandArena(bounds::Bounds, nCells::Int, cellRadius::Float64, vStd::Float64; fixSpeed=false, attempts=100)
+function buildRandArena(bounds::Bounds, nCells::Int, cellRadius::Float64, s0::Float64; fixSpeed=false, attempts=100)
     for attempt in 1:attempts
-        arena = Arena([randCell(bounds, cellRadius, vStd, fixSpeed=fixSpeed) for i=1:nCells], bounds)
+        arena = Arena([randCell(bounds, cellRadius, s0, fixSpeed=fixSpeed) for i=1:nCells], bounds)
         success = fixArenaOverlaps!(arena)
         if success
-            return arena
-        else
-            println("could not resolve overlaps in ", attempt, " attempts. Try a smaller number of cells or increase the number of attempts.")
-            return nothing
+            return arena    
         end
     end
+    println("could not resolve overlaps in ", attempts, " attempts. Try a smaller number of cells or increase the number of attempts.")
+    return nothing
+end
+
+"""Build a new arena with a specified number of randomly placed cells."""
+function buildRandArena(bounds::Tuple{Tuple{Real, Real}, Tuple{Real, Real}},
+     nCells::Int, cellRadius::Float64, s0::Float64; fixSpeed=false, attempts=100)
+     bounds = Bounds(bounds[1], bounds[2])
+    for attempt in 1:attempts
+        arena = Arena([randCell(bounds, cellRadius, s0, fixSpeed=fixSpeed) for i=1:nCells], bounds)
+        success = fixArenaOverlaps!(arena)
+        if success
+            return arena    
+        end
+    end
+    println("could not resolve overlaps in ", attempts, " attempts. Try a smaller number of cells or increase the number of attempts.")
+    return nothing
 end
 
 """Perform multiple scans to find and fix arena overlaps."""
@@ -65,16 +79,21 @@ function overlapScan!(arena::Arena)
 end
 
 """Create a random cell within given boundaries"""
-function randCell(bounds::Bounds, radius::Real, vStd::Float64; fixSpeed=false)
+function randCell(bounds::Bounds, radius::Real, speed::Real; fixSpeed=false)
     xPos = bounds.x[1] + (bounds.x[2]-bounds.x[1])*rand()
     yPos = bounds.y[1] + (bounds.y[2]-bounds.y[1])*rand()
+    
+    # note:
+    #if fixSpeed=true speed will not equal the average particle speed at equilibrium
     if fixSpeed
         α = rand() * 2*π
-        xVel = vStd * cos(α)
-        yVel = vStd * sin(α)
+        xVel = speed * cos(α)
+        yVel = speed * sin(α)
     else
-        xVel = randn() * vStd
-        yVel = randn() * vStd
+        s = rand(Rayleigh(speed*√(2/π)))
+        α = rand() * 2*π
+        xVel = s * cos(α)
+        yVel = s * sin(α)
     end
     newCell = Cell(@MVector[xPos,yPos], @MVector[xVel, yVel], radius)
     return newCell

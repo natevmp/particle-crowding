@@ -61,7 +61,7 @@ eKinAv = eKin / nCells
 speed_t_id = BParts.speedCalc(velTime_t_dim_id)
 # sMean = [sum(speed_id_t[:, t])/size(speed_id_t, 1) for t in 1:size(speed_id_t, 2)]
 
-rDist = BParts.rayleighDistCompare(velTime_t_dim_id)
+rDist = BParts.rayleighDistFit(velTime_t_dim_id)
 
 h = histogram(vec(speed_t_id[100:500, :]), bins=range(0, 0.25, length=50), 
     normalize=true, ylims=(0,14), xlabel="speed", ylabel="distribution", 

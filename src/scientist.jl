@@ -86,6 +86,7 @@ function snapshotCells!(cells_Time_ID::Vector{Vector{Cell}}, arena::Arena, t::In
 end
 
 function speedCalc(velTime_t_dim_id::AbstractArray)
+    # does not yet work with growing population (Missing values cause error)
     speedTime_t_id = Array{Float64}(undef, size(velTime_t_dim_id)[1], size(velTime_t_dim_id)[3])
     for t in 1:size(speedTime_t_id, 1)
         for id in 1:size(speedTime_t_id, 2)

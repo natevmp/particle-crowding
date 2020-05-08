@@ -1,0 +1,14 @@
+Packages:
+
+StaticArrays
+ElasticArrays
+LinearAlgebra
+Distances
+NearestNeighbors
+Random 
+Distributions
+PoissonRandom
+ProgressMeter
+Plots
+DifferentialEquations
+LaTeXStrings

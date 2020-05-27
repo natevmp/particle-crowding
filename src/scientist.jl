@@ -24,11 +24,15 @@ function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParam
         evolveGrowthParams = nothing
     else
         logisticRate(n::Real, ρ::Real, k::Real) = n*ρ*(1-n/k)
+        
         evolveGrowthParams = 
             Dict(
                 "rateFunc"=> n->logisticRate(n, growthParams["ρ"], growthParams["k"]),
+                "growthFunc"=> t->logisticGrowth(t, growthParams["ρ"], growthParams["k"],
+                                                    arenaParams["n0"]),
                 "radius"=> arenaParams["radius"],
-                "speed"=> arenaParams["speed"]
+                "speed"=> arenaParams["speed"],
+                "randGrowth"=> growthParams["randGrowth"]
             )
     end
 
@@ -171,4 +175,12 @@ function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bounds::Bounds)
         msd_t[t] = mean(sd_CID_t)
     end
     return msd_t
+end
+
+function logisticGrowth(t, ρ, k, n0)
+    return k/( 1 + (k-n0)/n0 * exp(-ρ*t) )
+end
+
+function nCellsTime(cells_T_ID)
+    nCells_t = map(length, cells_T_ID)
 end

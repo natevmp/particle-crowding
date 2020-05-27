@@ -25,17 +25,6 @@ struct Cell{T<:MVector{2,Float64}, R<:AbstractFloat}
     radius::R
 end
 
-# struct Bounds{T<:Real}
-#     x::Tuple{T, T}
-#     y::Tuple{T, T}
-#     xLen::T
-#     yLen::T
-#     function Bounds{T}(x::Tuple{T, T}, y::Tuple{T, T}) where T<:Real
-#         xLen = abs(x[2]-x[1])
-#         yLen = abs(y[2]-y[1])
-#         new(x, y, xLen, yLen)
-#     end
-# end
 struct Bounds
     x::Tuple{Real, Real}
     y::Tuple{Real, Real}

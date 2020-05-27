@@ -1,12 +1,16 @@
 
 
 """Add new cells to given arena according to specified growth rate."""
-function cultivateArena!(arena::Arena, dt::Real, rateFunc::Function, r::Real, speed::Real)
+function cultivateArena!(arena::Arena, dt::Real, grFunc::Function, r::Real, speed::Real; randGrowth::Bool=false)
 
     nPop = length(arena.cellsList)
     
-    # draw number of new cells in timestep
-    n = pois_rand(rateFunc(nPop)*dt)
+    if randGrowth
+        # draw number of new cells in timestep
+        n = pois_rand(grFunc(nPop)*dt)
+    else
+        n = Integer(round(grFunc(nPop)))
+    end
     if n > 0
         newcells_c = Vector{Cell}(undef, n)
         #create n random cells

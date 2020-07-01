@@ -30,7 +30,8 @@ arenaParams =
 growthParams = 
     Dict(
         "ρ"=> 0.06,
-        "k"=> 2000
+        "k"=> 2000,
+        "randGrowth"=> false
     )
 
 arena, pos_t_dim_id, vel_t_dim_id, cells_T_ID = 

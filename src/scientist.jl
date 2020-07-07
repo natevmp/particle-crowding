@@ -6,10 +6,10 @@ using Statistics
 
 
 """Construct an arena with randomly distributed cells and evolve it for a specified time."""
-function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing; plotting=false, animating=false)
-    
+function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing; plotting=false, animating=false, progress=true, verbose=true)
+
     arena = buildRandArena(arenaParams["bounds"], nCells, arenaParams["radius"], arenaParams["speed"], fixSpeed=false)
-    
+
     arenaCellPositions_dim_id = BParts.cellPositions_DIM_ID(arena)
 
     eKin = BParts.kineticEnergy(arena)
@@ -19,13 +19,13 @@ function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParam
         anim = Animation()
     else anim = nothing
     end
-    
+
     if isnothing(growthParams)
         evolveGrowthParams = nothing
     else
         logisticRate(n::Real, ρ::Real, k::Real) = n*ρ*(1-n/k)
-        
-        evolveGrowthParams = 
+
+        evolveGrowthParams =
             Dict(
                 "rateFunc"=> n->logisticRate(n, growthParams["ρ"], growthParams["k"]),
                 "growthFunc"=> t->logisticGrowth(t, growthParams["ρ"], growthParams["k"],
@@ -36,9 +36,9 @@ function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParam
             )
     end
 
-    posTime_t_dim_id, velTime_t_dim_id, cells_T_ID = 
-        evolveArena!(arena, steps, evolveGrowthParams, plotsteps=plotting, animator=anim)
-    
+    posTime_t_dim_id, velTime_t_dim_id, cells_T_ID =
+        evolveArena!(arena, steps, evolveGrowthParams, plotsteps=plotting, animator=anim, progress=progress, verbose=verbose)
+
     if animating
         gif(anim, "figures/animation.gif", fps=10)
     end
@@ -67,9 +67,9 @@ function snapshotVel(arena::Arena, t::Int, velTime_t_dim_id::AbstractArray)
     end
 end
 
-function snapshotCells!(posTime_t_dim_id::AbstractArray, velTime_t_dim_id::AbstractArray, 
+function snapshotCells!(posTime_t_dim_id::AbstractArray, velTime_t_dim_id::AbstractArray,
                         arena::Arena, t::Int)
-    
+
     if length(arena.cellsList) > size(posTime_t_dim_id)[3]
         nBirths = length(arena.cellsList) - size(posTime_t_dim_id)[3]
         tDim = size(posTime_t_dim_id)[1]
@@ -169,10 +169,10 @@ function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bounds::Bounds)
     nCells, nTime = size(pos_t_dim_id)[[3,1]]
     msd_t = Vector{Float64}(undef, nTime)
     for t in 1:nTime
-        sd_CID_t = skipmissing(
+        sdT_CID =
             [peuclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[1, :, cellInd], [bounds.xLen, bounds.yLen])^2
-            for cellInd in 1:nCells])
-        msd_t[t] = mean(sd_CID_t)
+            for cellInd in 1:nCells]
+        msd_t[t] = mean(skipmissing(sdT_CID))
     end
     return msd_t
 end

@@ -2,19 +2,21 @@
 ### ======== Collision Functions ========
 
 """Perform collisions in a given arena. Return index of collided cells."""
-function collider!(arena::Arena; nbhcut=50)
+function collider!(arena::Arena; nbhcut=50, verbose=true)
     collidedCellsList = Int[]
 
     counter = 1
     while true
-        collidedCellsPass = passThroughNeighborhood(arena)
+        collidedCellsPass = passThroughNeighborhood(arena; verbose=verbose)
         if length(collidedCellsPass)==0
             break
         end
         union!(collidedCellsList, collidedCellsPass)
         counter += 1
         if counter > nbhcut
-            println(">>> Error: Could not resolve neighborhood collisions in ", nbhcut, " steps ! <<<")
+            if verbose
+                println(">>> Error: Could not resolve neighborhood collisions in ", nbhcut, " steps ! <<<")
+            end
             break
         end
     end
@@ -22,7 +24,7 @@ function collider!(arena::Arena; nbhcut=50)
 end
 
 """Find collisions and perform collisions in arena. """
-function passThroughNeighborhood(arena::Arena)
+function passThroughNeighborhood(arena::Arena; verbose=true)
     # create neighborhoods
     nbhoods_id = collisionFinder(arena)
     collidedCellsOut = Int[]
@@ -42,7 +44,7 @@ function passThroughNeighborhood(arena::Arena)
             tRetc, nbh_c = collTimeCompare(arena, nbh_c...)
         end
         #perform collision
-        collideCells!(arena.bounds, arena.cellsList[nbh_c]..., tRetc)
+        collideCells!(arena.bounds, arena.cellsList[nbh_c]..., tRetc; verbose=verbose)
         push!(collidedCellsOut, nbh_c...)
     end
     return collidedCellsOut
@@ -118,7 +120,7 @@ function collTimeCalc(cellA::Cell, cellB::Cell, bounds::Bounds)
 end
 
 """Perform collision of two cells."""
-function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Float64)
+function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Float64; verbose=true)
     #undo cell overlap
     reverseCellTime!(bounds, tRetc, cellA, cellB)
 
@@ -133,7 +135,9 @@ function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Float64)
         moveCell!(cellA, bounds, tRetc)
         moveCell!(cellB, bounds, tRetc)
     else
-        println("anomalous collision time ", tRetc, " found in step time ", 1)
+        if verbose
+            println("anomalous collision time ", tRetc, " found in step time ", 1)
+        end
         # println("A position: ", cellA.pos, "; A speed: ", norm(cellA.vel))
         # println("B position: ", cellB.pos, "; B speed: ", norm(cellB.vel))
     end

@@ -76,6 +76,8 @@ function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Dict, Nothin
                     growthParams["radius"],
                     growthParams["speed"], randGrowth=false)
             end
+        else
+            nDaughters = 0
         end
 
         # == Plot data ==

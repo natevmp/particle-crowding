@@ -8,7 +8,7 @@ using Statistics
 """Construct an arena with randomly distributed cells and evolve it for a specified time."""
 function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing; plotting=false, animating=false, progress=true, verbose=true)
 
-    arena = buildRandArena(arenaParams["bounds"], nCells, arenaParams["radius"], arenaParams["speed"], fixSpeed=false)
+    arena = buildRandArena(arenaParams["bounds"], nCells, arenaParams["radius"], arenaParams["speed"], fixSpeed=true)
 
     arenaCellPositions_dim_id = BParts.cellPositions_DIM_ID(arena)
 

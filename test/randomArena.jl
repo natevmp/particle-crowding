@@ -9,10 +9,11 @@ using ..Theorist
 using StaticArrays
 using LinearAlgebra
 using Plots
+plotlyjs()
 using Distributions
 using LaTeXStrings
-using Debugger
-# pyplot()
+# using Debugger
+
 
 ### ======== Random arena animation test ========
 
@@ -49,12 +50,12 @@ function randArenaEvolve(nCells::Int, steps::Int; plotting=true, animating=false
     eKin = BParts.kineticEnergy(arena)
     println("::::: Final total kinetic energy: ", eKin)
 
-    return posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, eKin
+    return arena, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, eKin
 end
 
 nCells = 150
-evolveTime = 500
-posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, eKin = randArenaEvolve(nCells, evolveTime, plotting=false)
+evolveTime = 20
+arena1, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, eKin = randArenaEvolve(nCells, evolveTime, plotting=true)
 
 eKinAv = eKin / nCells
 
@@ -63,11 +64,11 @@ speed_t_id = BParts.speedCalc(velTime_t_dim_id)
 
 rDist = BParts.rayleighDistFit(velTime_t_dim_id)
 
-h = histogram(vec(speed_t_id[100:500, :]), bins=range(0, 0.25, length=50), 
-    normalize=true, ylims=(0,14), xlabel="speed", ylabel="distribution", 
+h = histogram(vec(speed_t_id[100:500, :]), bins=range(0, 0.25, length=50),
+    normalize=true, ylims=(0,14), xlabel="speed", ylabel="distribution",
     label="simulation", dpi=100)
 plot!(range(0, 0.25, length=100), pdf.(rDist, range(0, 0.25, length=100)), label="fit")
-plot!(range(0, 0.25, length=100), pdf.(Rayleigh(sqrt(eKinAv)), range(0, 0.25, length=100)), 
+plot!(range(0, 0.25, length=100), pdf.(Rayleigh(sqrt(eKinAv)), range(0, 0.25, length=100)),
     line=(:dash), label="theory")
 display(h)
 # savefig(h, "speedDist.png")
@@ -98,6 +99,10 @@ h3 = plot(msd_t)
 xlabel!("time")
 ylabel!("msd")
 display(h3)
+
+
+h4 = scatter(posTime_t_dim_id[end,1,:], posTime_t_dim_id[end,2,:], xlims = (0,10), ylims = (0,10), legend=false)
+display(h4)
 
 
 end

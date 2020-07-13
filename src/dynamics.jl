@@ -63,18 +63,20 @@ function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Dict, Nothin
 
         # == Growth ==
         if growthParams != nothing
-            if growthParams["randGrowth"]
-                nDaughters = cultivateArena!(
-                    arena, 1., growthParams["rateFunc"],
-                    growthParams["radius"],
-                    growthParams["speed"], randGrowth=true)
-            else
-                # popSizeNew = growthParams["growthFunc"](t)
-                rateFunc(nPop) = growthParams["growthFunc"](t) - nPop
-                nDaughters = cultivateArena!(
-                    arena, 1., rateFunc,
-                    growthParams["radius"],
-                    growthParams["speed"], randGrowth=false)
+            if t>growthParams["waitTime"]
+                if growthParams["randGrowth"]
+                    nDaughters = cultivateArena!(
+                        arena, 1., growthParams["rateFunc"],
+                        growthParams["radius"],
+                        growthParams["speed"], randGrowth=true)
+                else
+                    # popSizeNew = growthParams["growthFunc"](t)
+                    rateFunc(nPop) = growthParams["growthFunc"](t-growthParams["waitTime"]) - nPop
+                    nDaughters = cultivateArena!(
+                        arena, 1., rateFunc,
+                        growthParams["radius"],
+                        growthParams["speed"], randGrowth=false)
+                end
             end
         else
             nDaughters = 0

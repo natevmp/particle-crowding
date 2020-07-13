@@ -60,22 +60,25 @@ function thermalValues(arenaParams::Dict, growthFunc::Union{Function, Nothing}=n
 end
 
 # ===== Langevin numeric simulation =====
+function heaviside(x::Real)
+    ifelse(x < 0, zero(x), one(x))
+end
 
 # --- Problem definitions ---
-function brownianLangevin(n::Function, E, σ, u0, tspan)
+function brownianLangevin(n::Function, E, σ, u0, tspan; wait=0)
 
     l(t) = 1/(√2*σ*n(t))
     γ(t) = √(E)/l(t) * √(π/2)
     D(t) = E*γ(t)
 
     function drift(du, u, p, t)
-        du[1] = - γ(t)*u[1]
-        du[2] = - γ(t)*u[2]
+        du[1] = - γ(heaviside(t-wait)*(t-wait))*u[1]
+        du[2] = - γ(heaviside(t-wait)*(t-wait))*u[2]
     end
 
     function diff(du, u, p, t)
-        du[1] = √(2*D(t))
-        du[2] = √(2*D(t))
+        du[1] = √(2*D(heaviside(t-wait)*(t-wait)))
+        du[2] = √(2*D(heaviside(t-wait)*(t-wait)))
     end
 
     return SDEProblem(drift, diff, u0, tspan)
@@ -101,15 +104,17 @@ function runLangevinSims(runs, arenaParams::Dict, growthParams::Union{Dict, Noth
     if isnothing(growthParams)
         ρ = 0
         k = n0
+        waitTime = 0
     else
         ρ = growthParams["ρ"]
         k = growthParams["k"]
         nDensity(t) = logisticGrowth(t, ρ, k, n0) / volume
+        waitTime = growthParams["waitTime"]
     end
 
     u0 = [s0*cos(π), s0*sin(π)]
     tspan = (0., evolveTime)
-    langProb = brownianLangevin(nDensity, E, σc, u0, tspan);
+    langProb = brownianLangevin(nDensity, E, σc, u0, tspan, wait=waitTime);
 
     function randSpeedProblem(prob,i,repeat)
         # s = rand(  Rayleigh( norm(prob.u0)*√(2/π) )  )
@@ -189,13 +194,13 @@ function speedCalc(vEnsSol::EnsembleSolution, times)
 end
 
 """Calculate mean squared displacement over time of ensemble solutions"""
-function msd(ensSol, tspan::Tuple{Real, Real}, steps::Int=100)
+function msd(ensSol, tspan::Tuple{Integer, Integer})
 
-    times_t = range(tspan[1], tspan[2]; length=steps)
+    times_t = range(tspan[1], tspan[2]; step=1)
 
     p0 = [0., 0.]
     pos_Traj_t_xy = velToPosition(ensSol, p0, times_t)
-    msd_t = Array{Float64, 1}(undef, steps)
+    msd_t = Array{Float64, 1}(undef, tspan[2]-tspan[1]+1)
 
     for (i,t) in enumerate(times_t)
         msd_t[i] = mean([norm(pos_t_xy[i,:]-pos_t_xy[1,:])^2 for pos_t_xy in pos_Traj_t_xy])
@@ -204,17 +209,17 @@ function msd(ensSol, tspan::Tuple{Real, Real}, steps::Int=100)
     return times_t, msd_t
 end
 
-function msd(ensSol, arenaParams::Dict, tspan::Tuple{Real, Real}, steps::Int=100)
+function msd(ensSol, arenaParams::Dict, tspan::Tuple{Real, Real})
 
-    times_t = range(tspan[1], tspan[2]; length=steps)
+    times_t = range(tspan[1], tspan[2]; step=1)
 
     p0 = [0., 0.]
 
     pos_Traj_t_xy = velToPosition(ensSol, p0, arenaParams["bounds"], times_t)
-    msd_t = Array{Float64, 1}(undef, steps)
+    msd_t = Array{Float64, 1}(undef, tspan[2]-tspan[1]+1)
 
     for (i,t) in enumerate(times_t)
-        msd_t[i] = mean([peuclidean(pos_t_xy[1,:], pos_t_xy[i,:], arenaParams["bperiod"])^2
+        msd_t[i] = mean([peuclidean(pos_t_xy[i,:], pos_t_xy[1,:], arenaParams["bperiod"])^2
                         for pos_t_xy in pos_Traj_t_xy])
     end
 

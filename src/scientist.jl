@@ -6,7 +6,8 @@ using Statistics
 
 
 """Construct an arena with randomly distributed cells and evolve it for a specified time."""
-function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing; plotting=false, animating=false, progress=true, verbose=true)
+function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing;
+    plotting=false, animating=false, progress=true, verbose=true)
 
     arena = buildRandArena(arenaParams["bounds"], nCells, arenaParams["radius"], arenaParams["speed"], fixSpeed=true)
 
@@ -32,7 +33,8 @@ function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParam
                                                     arenaParams["n0"]),
                 "radius"=> arenaParams["radius"],
                 "speed"=> arenaParams["speed"],
-                "randGrowth"=> growthParams["randGrowth"]
+                "randGrowth"=> growthParams["randGrowth"],
+                "waitTime"=>growthParams["waitTime"]
             )
     end
 
@@ -153,28 +155,21 @@ function meanFreePath(vel_t_dim_id::AbstractArray, dt::Float64)
     return mean(pathlengths_l)
 end
 
-function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bperiod)
-    nCells, nTime = size(pos_t_dim_id)[[3,1]]
-    msd_t = Vector{Float64}(undef, nTime)
-    for t in 1:nTime
-        sd_CID_t = skipmissing(
-            [peuclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[1, :, cellInd], bperiod)^2
-            for cellInd in 1:nCells])
-        msd_t[t] = mean(sd_CID_t)
+function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bperiod_xy, tspan::Tuple{Real, Real})
+    nCells = size(pos_t_dim_id)[3]
+    steps = tspan[2]-tspan[1]+1
+    msd_t = Vector{Float64}(undef, steps)
+    for (i,t) in enumerate(range(tspan[1], tspan[2], step=1))
+        sd_CID_t =
+            [peuclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[tspan[1], :, cellInd], bperiod_xy)^2
+            for cellInd in 1:nCells]
+        msd_t[i] = mean(skipmissing(sd_CID_t))
     end
     return msd_t
 end
 
-function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bounds::Bounds)
-    nCells, nTime = size(pos_t_dim_id)[[3,1]]
-    msd_t = Vector{Float64}(undef, nTime)
-    for t in 1:nTime
-        sdT_CID =
-            [peuclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[1, :, cellInd], [bounds.xLen, bounds.yLen])^2
-            for cellInd in 1:nCells]
-        msd_t[t] = mean(skipmissing(sdT_CID))
-    end
-    return msd_t
+function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bounds::Bounds, tspan::Tuple{Real, Real})
+    meanSquaredDisplacement(pos_t_dim_id, [bounds.xLen, bounds.yLen], tspan)
 end
 
 function logisticGrowth(t, ρ, k, n0)

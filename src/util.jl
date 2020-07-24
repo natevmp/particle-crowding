@@ -21,16 +21,25 @@ function distance(p1::Vector{Float64}, p2::Vector{Float64}, period::Vector{Float
     peuclidean(p1, p2, period)
 end
 
-function connectingVector(p1::AbstractVector, p2::AbstractVector, period::AbstractVector)
-    dx = p1[1]-p2[1]
-    dy = p1[2]-p2[2]
+function connectingVector(pA::AbstractVector, pB::AbstractVector, bounds::BParts.Bounds)
+    p1 = BParts.toBoundsPeriodic(pA, bounds)
+    p2 = BParts.toBoundsPeriodic(pB, bounds)
 
-    if (abs(dx) > period[1]/2)
-        dx = -sign(dx)*(period[1] - abs(dx))
-    end
-    if (abs(dy) > period[2]/2)
-        dy = -sign(dy)*(period[2] - abs(dy))
-    end
+    dx_InUpDown = [
+        p1[1] - p2[1],
+        p1[1]+bounds.xLen - p2[1],
+        p1[1]-bounds.xLen - p2[1]
+        ]
+    indx = argmin(abs.(dx_InUpDown))
+    dx = dx_InUpDown[indx]
+
+    dy_InUpDown = [
+        p1[2] - p2[2],
+        p1[2]+bounds.yLen - p2[2],
+        p1[2]-bounds.yLen - p2[2]
+        ]
+    indy = argmin(abs.(dy_InUpDown))
+    dy = dy_InUpDown[indy]
 
     return @MVector[dx, dy]
 end

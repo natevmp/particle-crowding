@@ -151,7 +151,7 @@ function velToPosition(vSol::RODESolution, pos0, times)
     return pos_t_xy
 end
 
-function velToPosition(vSol::RODESolution, pos0, bounds_Dim_Val, times)
+function velToPosition(vSol::RODESolution, pos0, times, bounds_Dim_Val)
     pos_t_xy = Array{Float64, 2}(undef, length(times), 2)
     pos_t_xy[1, :] = pos0
     # println(bounds_Dim_Val)
@@ -175,10 +175,10 @@ function velToPosition(ensSol::EnsembleSolution, p0, times)
     return pos_Traj_t_xy
 end
 
-function velToPosition(ensSol::EnsembleSolution, p0, bounds_Dim_Val, times)
+function velToPosition(ensSol::EnsembleSolution, p0, times, bounds_Dim_Val)
     pos_Traj_t_xy = Array{Array{Float64, 2}, 1}(undef, length(ensSol))
     for (i, vTraj) in enumerate(ensSol)
-        pos_Traj_t_xy[i] = velToPosition(vTraj, p0, bounds_Dim_Val, times)
+        pos_Traj_t_xy[i] = velToPosition(vTraj, p0, times, bounds_Dim_Val)
     end
     return pos_Traj_t_xy
 end
@@ -203,24 +203,29 @@ function msd(ensSol, tspan::Tuple{Integer, Integer})
     msd_t = Array{Float64, 1}(undef, tspan[2]-tspan[1]+1)
 
     for (i,t) in enumerate(times_t)
-        msd_t[i] = mean([norm(pos_t_xy[i,:]-pos_t_xy[1,:])^2 for pos_t_xy in pos_Traj_t_xy])
+        msd_t[i] = mean([euclidean(pos_t_xy[i,:], pos_t_xy[1,:])^2 for pos_t_xy in pos_Traj_t_xy])
     end
 
     return times_t, msd_t
 end
 
-function msd(ensSol, arenaParams::Dict, tspan::Tuple{Real, Real})
+function msd(ensSol, arenaParams::Dict, tspan::Tuple{Real, Real}; periodic=false)
 
     times_t = range(tspan[1], tspan[2]; step=1)
-
     p0 = [0., 0.]
-
-    pos_Traj_t_xy = velToPosition(ensSol, p0, arenaParams["bounds"], times_t)
     msd_t = Array{Float64, 1}(undef, tspan[2]-tspan[1]+1)
-
-    for (i,t) in enumerate(times_t)
-        msd_t[i] = mean([peuclidean(pos_t_xy[i,:], pos_t_xy[1,:], arenaParams["bperiod"])^2
-                        for pos_t_xy in pos_Traj_t_xy])
+    if !periodic
+        pos_Traj_t_xy = velToPosition(ensSol, p0, times_t)
+        for (i,t) in enumerate(times_t)
+            msd_t[i] = mean([euclidean(pos_t_xy[i,:], pos_t_xy[1,:])^2
+                            for pos_t_xy in pos_Traj_t_xy])
+        end
+    else
+        pos_Traj_t_xy = velToPosition(ensSol, p0, arenaParams["bounds"], times_t)
+        for (i,t) in enumerate(times_t)
+            msd_t[i] = mean([peuclidean(pos_t_xy[i,:], pos_t_xy[1,:], arenaParams["bperiod"])^2
+                            for pos_t_xy in pos_Traj_t_xy])
+        end
     end
 
     return times_t, msd_t

@@ -9,9 +9,9 @@ using ..Theorist
 using StaticArrays
 using LinearAlgebra
 using Plots
+gr()
 using Distributions
 using LaTeXStrings
-using Debugger
 
 ### ======== Two cell collision test ========
 

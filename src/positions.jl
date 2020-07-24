@@ -21,12 +21,28 @@ function cellPositions_ID_DIM(arena::Arena, cellsList_id::Vector{Int})
     return positions_id_dim
 end
 
+"""
+Get _dim_id array of cell positions.
+"""
 function cellPositions_DIM_ID(arena::Arena)
     positions_dim_id = Array{Float64,2}(undef, 2, length(arena.cellsList))
     for (i, cell) in enumerate(arena.cellsList)
         positions_dim_id[:,i] = cell.pos
     end
     return positions_dim_id
+end
+
+"""
+Get _dim_id array of cell positions in primary box.
+"""
+function cellPositionsPeriodic_DIM_ID(arena::Arena)
+    positionsP_dim_id = Array{Float64,2}(undef, 2, length(arena.cellsList))
+    for (i, cell) in enumerate(arena.cellsList)
+        # positions_dim_id[:,i] = cell.pos
+        positionsP_dim_id[1,i] = toBoundsPeriodic(cell.pos[1], arena.bounds.x)
+        positionsP_dim_id[2,i] = toBoundsPeriodic(cell.pos[2], arena.bounds.y)
+    end
+    return positionsP_dim_id
 end
 
 function cellPositions_DIM_ID(cellsList_c::Vector{C} where C<:Cell)
@@ -55,7 +71,8 @@ function cellDistance(cellA::Cell, cellB::Cell, bounds::Bounds)
     # end
     #
     # return sqrt(dx^2 + dy^2)
-    evaluate(PeriodicEuclidean([bounds.xLen, bounds.yLen]), cellA.pos, cellB.pos)
+    # evaluate(PeriodicEuclidean([bounds.xLen, bounds.yLen]), cellA.pos, cellB.pos)
+    peuclidean(cellA.pos, cellB.pos, [bounds.xLen, bounds.yLen])
 end
 
 function cellVelocities_ID_DIM(arena::Arena)
@@ -84,16 +101,52 @@ function inBounds(r::Float64, b::Tuple{Real,Real})
     inB = b[1] <= r <= b[2]
 end
 
-function toBoundsPeriodic!(p::MVector{2,Float64}, bounds)
+"""
+Move input vector to equivalent position in bounds.
+"""
+function toBoundsPeriodic!(p::AbstractVector, bounds)
     if p[1] < bounds.x[1]
-        p[1] = bounds.x[2] - (bounds.x[1]-p[1])
+        p[1] = bounds.x[2] - (bounds.x[1]-p[1])%bounds.xLen
     elseif p[1] > bounds.x[2]
-        p[1] = bounds.x[1] + (p[1]-bounds.x[2])
+        p[1] = bounds.x[1] + (p[1]-bounds.x[2])%bounds.xLen
     end
     if p[2] < bounds.y[1]
-        p[2] = bounds.y[2] - (bounds.y[1]-p[2])
+        p[2] = bounds.y[2] - (bounds.y[1]-p[2])%bounds.yLen
     elseif p[2] > bounds.y[2]
-        p[2] = bounds.y[1] + (p[2]-bounds.y[2])
+        p[2] = bounds.y[1] + (p[2]-bounds.y[2])%bounds.yLen
     end
     nothing
+end
+
+"""
+Create vector with in bounds position equivalent to input vector.
+"""
+function toBoundsPeriodic(p::AbstractVector, bounds)
+    if p[1] < bounds.x[1]
+        px = bounds.x[2] - (bounds.x[1]-p[1])%bounds.xLen
+    elseif p[1] > bounds.x[2]
+        px = bounds.x[1] + (p[1]-bounds.x[2])%bounds.xLen
+    else
+        px = p[1]
+    end
+    if p[2] < bounds.y[1]
+        py = bounds.y[2] - (bounds.y[1]-p[2])%bounds.yLen
+    elseif p[2] > bounds.y[2]
+        py = bounds.y[1] + (p[2]-bounds.y[2])%bounds.yLen
+    else
+        py = p[2]
+    end
+    return @MVector[px, py]
+end
+
+"""
+Get equivalent point in bounds.
+"""
+function toBoundsPeriodic(x::Real, xbounds::Tuple{Real, Real})
+    if x < xbounds[1]
+        x = xbounds[2] - (xbounds[1]-x)%(xbounds[2]-xbounds[1])
+    elseif x > xbounds[2]
+        x = xbounds[1] + (x-xbounds[2])%(xbounds[2]-xbounds[1])
+    end
+    return x
 end

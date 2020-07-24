@@ -1,5 +1,13 @@
 ### ======== Cell movement functions ========
 
+function moveCell!(cell::Cell)
+    movePoint!(cell.pos, cell.vel)
+end
+
+function moveCell!(cell::Cell, time::Float64)
+    movePoint!(cell.pos, cell.vel*time)
+end
+
 function moveCell!(cell::Cell, bounds::Bounds)
     movePoint!(cell.pos, cell.vel, bounds)
 end
@@ -10,6 +18,10 @@ end
 
 function moveCell!(cell::Cell, bounds::Bounds, r::MVector{2,Float64})
     movePoint!(cell.pos, r, bounds)
+end
+
+function moveCell!(cell::Cell, r::MVector{2,Float64})
+    movePoint!(cell.pos, r)
 end
 
 function movePoint!(p::MVector{2,Float64}, d::MVector{2,Float64})

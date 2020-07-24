@@ -7,7 +7,7 @@ function buildRandArena(bounds::Bounds, nCells::Int, cellRadius::Float64, s0::Fl
         arena = Arena([randCell(bounds, cellRadius, s0, fixSpeed=fixSpeed) for i=1:nCells], bounds)
         success = fixArenaOverlaps!(arena)
         if success
-            return arena    
+            return arena
         end
     end
     println("could not resolve overlaps in ", attempts, " attempts. Try a smaller number of cells or increase the number of attempts.")
@@ -22,7 +22,7 @@ function buildRandArena(bounds::Tuple{Tuple{Real, Real}, Tuple{Real, Real}},
         arena = Arena([randCell(bounds, cellRadius, s0, fixSpeed=fixSpeed) for i=1:nCells], bounds)
         success = fixArenaOverlaps!(arena)
         if success
-            return arena    
+            return arena
         end
     end
     println("could not resolve overlaps in ", attempts, " attempts. Try a smaller number of cells or increase the number of attempts.")
@@ -82,7 +82,7 @@ end
 function randCell(bounds::Bounds, radius::Real, speed::Real; fixSpeed=false)
     xPos = bounds.x[1] + (bounds.x[2]-bounds.x[1])*rand()
     yPos = bounds.y[1] + (bounds.y[2]-bounds.y[1])*rand()
-    
+
     # note:
     #if fixSpeed=true speed will not equal the average particle speed at equilibrium
     if fixSpeed
@@ -111,7 +111,7 @@ end
 
 """Plot cell positions in a given arena"""
 function plotArena(arena::Arena, collidedCellsList_id::Union{Vector{Int}, Nothing}, nDaughters::Int; displayPlot=true, animator::Union{Animation, Nothing}=nothing)
-    arenaCellPositions_dim_id = cellPositions_DIM_ID(arena)
+    arenaCellPositions_dim_id = cellPositionsPeriodic_DIM_ID(arena)
     s = scatter(arenaCellPositions_dim_id[1,:], arenaCellPositions_dim_id[2,:], xlims = (0,10), ylims = (0,10), legend=false)
     if !(collidedCellsList_id===nothing)
         collisions_dim_id = arenaCellPositions_dim_id[:, collidedCellsList_id]

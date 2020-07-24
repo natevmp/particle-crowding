@@ -71,7 +71,7 @@ end
 
 function snapshotCells!(posTime_t_dim_id::AbstractArray, velTime_t_dim_id::AbstractArray,
                         arena::Arena, t::Int)
-
+    # increase pos_t_dim_id and vel_t_dim_id sizes to accomodate new cells
     if length(arena.cellsList) > size(posTime_t_dim_id)[3]
         nBirths = length(arena.cellsList) - size(posTime_t_dim_id)[3]
         tDim = size(posTime_t_dim_id)[1]
@@ -79,6 +79,7 @@ function snapshotCells!(posTime_t_dim_id::AbstractArray, velTime_t_dim_id::Abstr
         append!(posTime_t_dim_id, fill(missing, tDim, pDim, nBirths))
         append!(velTime_t_dim_id, fill(missing, tDim, pDim, nBirths))
     end
+    # add positions and velocities to arrays at timestep
     for (id, cell) in enumerate(arena.cellsList)
         posTime_t_dim_id[t, :, id] = cell.pos
         velTime_t_dim_id[t, :, id] = cell.vel
@@ -153,6 +154,19 @@ function meanFreePath(vel_t_dim_id::AbstractArray, dt::Float64)
         end
     end
     return mean(pathlengths_l)
+end
+
+function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, tspan::Tuple{Real, Real})
+    nCells = size(pos_t_dim_id)[3]
+    steps = tspan[2]-tspan[1]+1
+    msd_t = Vector{Float64}(undef, steps)
+    for (i,t) in enumerate(range(tspan[1], tspan[2], step=1))
+        sd_CID_t =
+            [euclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[tspan[1], :, cellInd])^2
+            for cellInd in 1:nCells]
+        msd_t[i] = mean(skipmissing(sd_CID_t))
+    end
+    return msd_t
 end
 
 function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bperiod_xy, tspan::Tuple{Real, Real})

@@ -55,7 +55,8 @@ function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Dict, Nothin
 
         # == Movement ==
         for cell in arena.cellsList
-            moveCell!(cell, arena.bounds)
+            # moveCell!(cell, arena.bounds)
+            moveCell!(cell)
         end
 
         # == Collisions ==

@@ -2,12 +2,12 @@
 ### ======== Collision Functions ========
 
 """Perform collisions in a given arena. Return index of collided cells."""
-function collider!(arena::Arena; nbhcut=50, verbose=true)
+function collider!(arena::Arena, tStep::Real; nbhcut=50, verbose=true)
     collidedCellsList = Int[]
 
     counter = 1
     while true
-        collidedCellsPass = passThroughNeighborhood(arena; verbose=verbose)
+        collidedCellsPass = passThroughNeighborhood(arena, tStep; verbose=verbose)
         if length(collidedCellsPass)==0
             break
         end
@@ -23,8 +23,8 @@ function collider!(arena::Arena; nbhcut=50, verbose=true)
     return collidedCellsList
 end
 
-"""Find collisions and perform collisions in arena."""
-function passThroughNeighborhood(arena::Arena; verbose::Bool=true)
+"""Find and perform collisions in arena."""
+function passThroughNeighborhood(arena::Arena, tStep::Real; verbose::Bool=true)
     # create neighborhoods
     nbhoods_id = collisionFinder(arena)
     collidedCellsOut = Int[]
@@ -38,13 +38,13 @@ function passThroughNeighborhood(arena::Arena; verbose::Bool=true)
         nbhComposer!(nbh_c, nbhoods_id)
         if length(nbh_c) == 2
             # get collision time
-            tRetc = collTimeCalc(arena.cellsList[nbh_c]..., arena.bounds; verbose=verbose)
+            tRetc = collTimeCalc(arena.cellsList[nbh_c]..., arena.bounds, tStep; verbose=verbose)
         else
             # get earliest collision and time in composite neighborhood
-            tRetc, nbh_c = collTimeCompare(arena, nbh_c...; verbose=verbose)
+            tRetc, nbh_c = collTimeCompare(arena, tStep, nbh_c...; verbose=verbose)
         end
         #perform collision
-        collideCells!(arena.bounds, arena.cellsList[nbh_c]..., tRetc; verbose=verbose)
+        collideCells!(arena.bounds, arena.cellsList[nbh_c]..., tRetc, tStep; verbose=verbose)
         push!(collidedCellsOut, nbh_c...)
     end
     return collidedCellsOut
@@ -92,15 +92,15 @@ function removeDoubleCounts!(nbh::Vector{Int}, pastColls::Vector{Int})
 end
 
 """Calculate exact time within timestep when collision took place."""
-function collTimeCalc(cellA::Cell, cellB::Cell, bounds::Bounds; verbose::Bool=true)
+function collTimeCalc(cellA::Cell, cellB::Cell, bounds::Bounds, tStep::Real; verbose::Bool=true)
     # r = cellA.pos .- cellB.pos
     r = connectingVector(cellA.pos, cellB.pos, bounds)
     v = cellA.vel .- cellB.vel
     d = cellA.radius + cellB.radius
     if cellDistance(cellA, cellB, bounds) <= d   # Only calculate if cells actually overlap. If this is not the case, complex solutions may occur.
         tColl = ( r⋅v + sqrt( d^2*(v⋅v) - (r[2]*v[1]-r[1]*v[2])^2 ) ) / (v⋅v)
-        if tColl > 1 && verbose
-            println("anomalous collision time ", tColl, " found in time step")
+        if tColl > tStep && verbose
+            println("anomalous collision time ", tColl, " found in time step", tStep)
         end
         return tColl
     else
@@ -110,15 +110,15 @@ function collTimeCalc(cellA::Cell, cellB::Cell, bounds::Bounds; verbose::Bool=tr
 end
 
 """Find earliest collision in higher order (3 or more cells) collisions"""
-function collTimeCompare(arena::Arena, nbh_c::Vararg{Int}; verbose=true)
+function collTimeCompare(arena::Arena, tStep::Real, nbh_c::Vararg{Int}; verbose=true)
     cellPairsInd_p = getPairs(nbh_c...)
-    timepair_tp = [(collTimeCalc(arenaIndsToCells(arena, cpi)..., arena.bounds; verbose=verbose), cpi)
+    timepair_tp = [(collTimeCalc(arenaIndsToCells(arena, cpi)..., arena.bounds, tStep; verbose=verbose), cpi)
                         for cpi in cellPairsInd_p]
     return sort!(filter!(tp -> tp[1]>0, timepair_tp), rev=true)[1]
 end
 
 """Perform collision of two cells."""
-function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Float64; verbose=true)
+function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Real, tStep::Real; verbose=true)
     #undo cell overlap
     # reverseCellTime!(bounds, tRetc, cellA, cellB)
     reverseCellTime!(tRetc, cellA, cellB)
@@ -130,7 +130,7 @@ function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Float64;
     cellB.vel .= newVelB
 
     #finish movement with remaining time
-    if tRetc < 1
+    if 0<tRetc<tStep
         # moveCell!(cellA, bounds, tRetc)
         # moveCell!(cellB, bounds, tRetc)
         moveCell!(cellA, tRetc)
@@ -145,13 +145,6 @@ function collideCells!(bounds::Bounds, cellA::Cell, cellB::Cell, tRetc::Float64;
     end
     return nothing
 end
-
-# function reverseCellTime!(bounds::Bounds, t::Float64, cells_id::Vararg{Cell})
-#     for cell in cells_id
-#         moveCell!(cell, bounds, -t)
-#     end
-#     return nothing
-# end
 
 function reverseCellTime!(t::Float64, cells_id::Vararg{Cell})
     for cell in cells_id
@@ -201,7 +194,7 @@ function collisionCrossSection(cellA::Cell, cellB::Cell)
 end
 
 function getPairs(elems::Vararg{Int})
-    pairs_p = Vector(undef,0)
+    pairs_p = Vector{Vector{Int}}(undef,0)
     for i in 1:length(elems)
         for el2 in elems[i+1:end]
             push!(pairs_p, [elems[i], el2])

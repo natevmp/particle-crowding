@@ -6,10 +6,11 @@ using Statistics
 
 
 """Construct an arena with randomly distributed cells and evolve it for a specified time."""
-function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing;
-    plotting=false, animating=false, progress=true, verbose=true)
+function randArenaEvolve(nCells::Int, time::Real, stepSize::Real, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing;
+    overlapScans=40, plotting=false, animating=false, progress=true, verbose=false, attempts=1)
 
-    arena = buildRandArena(arenaParams["bounds"], nCells, arenaParams["radius"], arenaParams["speed"], fixSpeed=true)
+    arena = buildRandArena(arenaParams["bounds"], nCells, arenaParams["radius"], arenaParams["speed"];
+                fixSpeed=true, verbose=verbose, overlapScans=overlapScans, attempts=attempts)
 
     arenaCellPositions_dim_id = BParts.cellPositions_DIM_ID(arena)
 
@@ -38,8 +39,8 @@ function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParam
             )
     end
 
-    posTime_t_dim_id, velTime_t_dim_id, cells_T_ID =
-        evolveArena!(arena, steps, evolveGrowthParams, plotsteps=plotting, animator=anim, progress=progress, verbose=verbose)
+    posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, times_t =
+        evolveArena!(arena, time, stepSize, evolveGrowthParams, plotsteps=plotting, animator=anim, progress=progress, verbose=verbose)
 
     if animating
         gif(anim, "figures/animation.gif", fps=10)
@@ -48,7 +49,15 @@ function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParam
     eKin = BParts.kineticEnergy(arena)
     # println("::::: Final total kinetic energy: ", eKin)
 
-    return arena, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID
+    return arena, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, times_t
+end
+
+function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing;
+    plotting=false, animating=false, progress=true, verbose=true)
+
+    randArenaEvolve(nCells, steps, 1, arenaParams, growthParams;
+        plotting=plotting, animating=animating, progress=progress, verbose=verbose)
+
 end
 
 # ===== Analysing experiments =====
@@ -70,7 +79,7 @@ function snapshotVel(arena::Arena, t::Int, velTime_t_dim_id::AbstractArray)
 end
 
 function snapshotCells!(posTime_t_dim_id::AbstractArray, velTime_t_dim_id::AbstractArray,
-                        arena::Arena, t::Int)
+                        arena::Arena, tInd::Int)
     # increase pos_t_dim_id and vel_t_dim_id sizes to accomodate new cells
     if length(arena.cellsList) > size(posTime_t_dim_id)[3]
         nBirths = length(arena.cellsList) - size(posTime_t_dim_id)[3]
@@ -81,14 +90,14 @@ function snapshotCells!(posTime_t_dim_id::AbstractArray, velTime_t_dim_id::Abstr
     end
     # add positions and velocities to arrays at timestep
     for (id, cell) in enumerate(arena.cellsList)
-        posTime_t_dim_id[t, :, id] = cell.pos
-        velTime_t_dim_id[t, :, id] = cell.vel
+        posTime_t_dim_id[tInd, :, id] = cell.pos
+        velTime_t_dim_id[tInd, :, id] = cell.vel
     end
     return nothing
 end
 
-function snapshotCells!(cells_Time_ID::Vector{Vector{Cell}}, arena::Arena, t::Int)
-    cells_Time_ID[t] = arena.cellsList
+function snapshotCells!(cells_Time_ID::Vector{Vector{Cell}}, arena::Arena, tInd::Int)
+    cells_Time_ID[tInd] = arena.cellsList
     return nothing
 end
 
@@ -135,6 +144,14 @@ function velocityAutocorrelation(vel_t_dim_id::AbstractArray)
     return vCorr_t
 end
 
+function velocityAutocorrelation(vel_t_dim_id::AbstractArray, times::Tuple{Real, Real}, tStep::Real=1)
+    # vCorr_id_t = zeros(Float64, size(vel_id_t_dim)[1], size(vel_id_t_dim)[2])
+    # tInds = length(tStep:tStep:time)
+    tInds = Int(floor(times[1]/tStep)):Int(floor(times[2]/tStep))
+    vCorr_t = velocityAutocorrelation(vel_t_dim_id[tInds, :, :])
+    return 0:tStep:times[2]-times[1], vCorr_t
+end
+
 function meanFreePath(vel_t_dim_id::AbstractArray, dt::Float64)
     nCells, nTime = size(vel_t_dim_id)[[3,1]]
     pathlengths_l = Vector{Float64}(undef, 0)
@@ -156,17 +173,26 @@ function meanFreePath(vel_t_dim_id::AbstractArray, dt::Float64)
     return mean(pathlengths_l)
 end
 
-function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, tspan::Tuple{Real, Real})
+function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, tspan::Tuple{Real, Real}, tStep::Real=1)
     nCells = size(pos_t_dim_id)[3]
-    steps = tspan[2]-tspan[1]+1
-    msd_t = Vector{Float64}(undef, steps)
-    for (i,t) in enumerate(range(tspan[1], tspan[2], step=1))
-        sd_CID_t =
-            [euclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[tspan[1], :, cellInd])^2
+    tInds = Int( ceil(tspan[1]/tStep) ) : Int( floor(tspan[2]/tStep) )
+    msd_t = Vector{Float64}(undef, length(tInds))
+
+    sd_cid = Vector{Union{Float64, Missing}}(undef, size(pos_t_dim_id)[3])
+    for (i,tInd) in enumerate(tInds)
+        sd_cid .=
+            [euclidean(pos_t_dim_id[tInd, :, cellInd], pos_t_dim_id[tInds[1], :, cellInd])^2
             for cellInd in 1:nCells]
-        msd_t[i] = mean(skipmissing(sd_CID_t))
+        # println(typeof(sd_CID))
+        # println(sd_CID)
+        msd_t[i] = mean(skipmissing(sd_cid))
+
     end
     return msd_t
+end
+
+function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, tspan::Tuple{Real, Real})
+    meanSquaredDisplacement(pos_t_dim_id, tspan, 1)
 end
 
 function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bperiod_xy, tspan::Tuple{Real, Real})
@@ -192,4 +218,14 @@ end
 
 function nCellsTime(cells_T_ID)
     nCells_t = map(length, cells_T_ID)
+end
+
+function photographImagePositions(pos_dim_id::AbstractArray, xBounds::Tuple{Real, Real}, yBounds::Tuple{Real, Real})
+    posImage_dim_id = Array{Float64}(undef, 2, size(pos_dim_id)[2])
+    println(size(pos_dim_id))
+    println(size(posImage_dim_id))
+
+    posImage_dim_id[1,:] = (x -> toBoundsPeriodic(x, xBounds)).(pos_dim_id[1,:])
+    posImage_dim_id[2,:] = (x -> toBoundsPeriodic(x, xBounds)).(pos_dim_id[2,:])
+    return posImage_dim_id
 end

@@ -2,11 +2,15 @@
 ### ======== Initializing functions ========
 
 """Build a new arena with a specified number of randomly placed cells."""
-function buildRandArena(bounds::Bounds, nCells::Int, cellRadius::Float64, s0::Float64; fixSpeed=false, attempts=100)
+function buildRandArena(bounds::Bounds, nCells::Int, cellRadius::Real, s0::Real;
+    fixSpeed=false, overlapScans=40, attempts=10, verbose=false)
+
+    verbose && println("Building arena...")
     for attempt in 1:attempts
         arena = Arena([randCell(bounds, cellRadius, s0, fixSpeed=fixSpeed) for i=1:nCells], bounds)
-        success = fixArenaOverlaps!(arena)
+        success = fixArenaOverlaps!(arena; scanLimit=overlapScans, verbose=verbose)
         if success
+            verbose && println("Arena succesfully built")
             return arena
         end
     end
@@ -16,46 +20,42 @@ end
 
 """Build a new arena with a specified number of randomly placed cells."""
 function buildRandArena(bounds::Tuple{Tuple{Real, Real}, Tuple{Real, Real}},
-     nCells::Int, cellRadius::Float64, s0::Float64; fixSpeed=false, attempts=100)
+     nCells::Int, cellRadius::Real, s0::Real; fixSpeed=false, overlapScans=40, attempts=10, verbose=false)
      bounds = Bounds(bounds[1], bounds[2])
-    for attempt in 1:attempts
-        arena = Arena([randCell(bounds, cellRadius, s0, fixSpeed=fixSpeed) for i=1:nCells], bounds)
-        success = fixArenaOverlaps!(arena)
-        if success
-            return arena
-        end
-    end
-    println("could not resolve overlaps in ", attempts, " attempts. Try a smaller number of cells or increase the number of attempts.")
-    return nothing
+     buildRandArena(bounds, nCells, cellRadius, s0;
+        fixSpeed=fixSpeed, attempts=attempts, verbose=verbose, overlapScans=overlapScans)
 end
 
 """Perform multiple scans to find and fix arena overlaps."""
-function fixArenaOverlaps!(arena::Arena, scanLimit::Int=20)
-    successCheck = false
-
-    # println("Cleaning arena overlaps...")
+function fixArenaOverlaps!(arena::Arena; scanLimit::Int=40, verbose=false)
+    succeeded = false
+    limitReached = false
     counter = 0
-    while true
-        overlaps = overlapScan!(arena)
+    while (!succeeded) && (!limitReached)
+        overlaps = overlapScan!(arena; verbose=verbose)
         if length(overlaps)==0
-            # println("No overlaps found.")
-            successCheck = true
-            break
+            if verbose
+                println("No overlaps found.")
+            end
+            succeeded = true
         else
-            # println(Int(ceil(length(overlaps)/2)), " overlaps fixed. Making another pass...")
+            if verbose
+                println(Int(ceil(length(overlaps)/2)), " overlaps fixed. Making another pass...")
+            end
         end
         counter += 1
+        # println(counter)
+        # println(scanLimit)
         if counter > scanLimit
             # println("could not resolve overlaps in ", scanLimit, " passes. Try a different cell configuration or a smaller number of cells.")
-            successCheck = false
-            break
+            limitReached = true
         end
     end
-    return successCheck
+    return succeeded
 end
 
 """Find and unoverlap cells in arena."""
-function overlapScan!(arena::Arena)
+function overlapScan!(arena::Arena; verbose=false)
     nbhoods_id = collisionFinder(arena)
     unoverlappedCellsList = Int[]
     for nbh in nbhoods_id
@@ -66,13 +66,20 @@ function overlapScan!(arena::Arena)
         end
         nbhComposer!(nbh, nbhoods_id)
         # println(">> Overlap found:")
-        if length(nbh)==2
-            push!(unoverlappedCellsList, nbh[1], nbh[2])
-            unoverlapPair!(arena.cellsList[nbh[1]], arena.cellsList[nbh[2]], arena.bounds)
-        else
-            nbh = nbh[1:2]
-            push!(unoverlappedCellsList, nbh...)
-            unoverlapPair!(arena.cellsList[nbh[1]], arena.cellsList[nbh[2]], arena.bounds)
+        # if length(nbh)==2
+        #     push!(unoverlappedCellsList, nbh[1], nbh[2])
+        #     unoverlapPair!(arena.cellsList[nbh[1]], arena.cellsList[nbh[2]], arena.bounds)
+        # else
+        #     nbh = nbh[1:2]
+        #     push!(unoverlappedCellsList, nbh...)
+        #     unoverlapPair!(arena.cellsList[nbh[1]], arena.cellsList[nbh[2]], arena.bounds)
+        # end
+        for cID in nbh[2:end]
+            randPos!(arena.cellsList[cID], arena.bounds)
+            push!(unoverlappedCellsList, nbh[2:end]...)
+            # if verbose
+            #     println("moved cell ID's: ", nbh[2:end])
+            # end
         end
     end
     return unoverlappedCellsList

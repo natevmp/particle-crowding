@@ -50,11 +50,13 @@ function thermalValues(arenaParams::Dict, growthFunc::Union{Function, Nothing}=n
         l = 1/(√2*σc*n)
         γ = √(E)/l * √(π/2)
         D = E*γ
+        DiffCoeff = D/γ^2
         thermVals["n"] = n
         thermVals["l"] = l
         thermVals["γ"] = γ
         thermVals["D"] = D
         thermVals["ρ"] = ρ
+        thermVals["DiffCoeff"] = DiffCoeff
     end
     return thermVals
 end
@@ -89,7 +91,8 @@ function logisticGrowth(t, ρ, k, n0)
 end
 
 # --- Experiments ---
-function runLangevinSims(runs, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing)
+function runLangevinSims(runs, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing;
+                            dt=1)
     n0 = arenaParams["n0"]
     evolveTime = arenaParams["evolveTime"]
     radius = arenaParams["radius"]
@@ -126,7 +129,16 @@ function runLangevinSims(runs, arenaParams::Dict, growthParams::Union{Dict, Noth
     end
 
     ensembleprob = EnsembleProblem(langProb; prob_func=randSpeedProblem)
-    ensSol = solve(ensembleprob, SOSRI(), EnsembleThreads(); trajectories=runs)
+    ensSol = solve(ensembleprob,
+                # SRIW1(),
+                SOSRI(),
+                # LambaEM(),
+                # SKenCarp(),
+                # LambaEulerHeun(),
+                EnsembleThreads();
+                dt=dt,
+                adaptive=false,
+                trajectories=runs)
     return ensSol
 end
 
@@ -142,11 +154,11 @@ function toBounds(val, b1, b2)
     end
 end
 
-function velToPosition(vSol::RODESolution, pos0, times)
+function velToPosition(vSol_xy::RODESolution, pos0, times)
     pos_t_xy = Array{Float64, 2}(undef, length(times), 2)
     pos_t_xy[1, :] = pos0
-    for (i, t) in enumerate(times[2:end])
-        pos_t_xy[1+i, :] = pos_t_xy[i, :] .+ vSol(t) .*(times[i+1]-times[i])
+    for (i, t) in enumerate(times[1:end-1])
+        pos_t_xy[1+i, :] = pos_t_xy[i, :] .+ vSol_xy(t)*(times[i+1]-times[i])
     end
     return pos_t_xy
 end
@@ -221,7 +233,7 @@ function msd(ensSol, arenaParams::Dict, tspan::Tuple{Real, Real}; periodic=false
                             for pos_t_xy in pos_Traj_t_xy])
         end
     else
-        pos_Traj_t_xy = velToPosition(ensSol, p0, arenaParams["bounds"], times_t)
+        pos_Traj_t_xy = velToPosition(ensSol, p0, times_t, arenaParams["bounds"])
         for (i,t) in enumerate(times_t)
             msd_t[i] = mean([peuclidean(pos_t_xy[i,:], pos_t_xy[1,:], arenaParams["bperiod"])^2
                             for pos_t_xy in pos_Traj_t_xy])
@@ -230,6 +242,8 @@ function msd(ensSol, arenaParams::Dict, tspan::Tuple{Real, Real}; periodic=false
 
     return times_t, msd_t
 end
+
+
 
 function velCorrelation(ensVSol::EnsembleSolution, tspan::Tuple{Real, Real}; steps::Int=100)
     times_t = range(tspan[1], tspan[2]; length=steps)

@@ -1,66 +1,40 @@
 ### ======== dynamics functions ========
 
-# function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Tuple, Nothing}=nothing; plotsteps=false,
-#     animator::Union{Animation, Nothing}=nothing)
-#     # LEGACY
+function evolveArena!(arena::Arena, time::Real, stepSize::Real, growthParams::Union{Dict, Nothing}=nothing;
+    plotsteps=false, animator::Union{Animation, Nothing}=nothing, progress=true, verbose=true, saveTimeStep=1)
 
-#     posTime_t_dim_id = ElasticArray{Union{Float64, Missing}}(fill(missing, steps, 2, length(arena.cellsList)))
-#     velTime_t_dim_id = ElasticArray{Union{Float64, Missing}}(fill(missing, steps, 2, length(arena.cellsList)))
+    # timepoints to evolve
+    timeSteps = 0:stepSize:time
 
-#     cells_T_ID = Vector{Vector{Cell}}(undef, steps)
+    # timepoints to save
+    timeSaves = zeros(Float64, length(0:saveTimeStep:time))
 
-
-#     @showprogress for t in 1:steps
-
-#         # == Movement ==
-#         for cell in arena.cellsList
-#             moveCell!(cell, arena.bounds)
-#         end
-
-#         # == Collisions ==
-#         collidedCellsList_id = collider!(arena)
-
-#         # == Growth ==
-#         if growthParams != nothing
-#             nDaughters = cultivateArena!(arena, 1., growthParams...)
-#         end
-
-#         # == Plot data ==
-#         if plotsteps||(animator!==nothing)
-#             plotArena(arena, collidedCellsList_id, nDaughters, displayPlot=plotsteps, animator=animator)
-#         end
-
-#         # == record data ==
-#         snapshotCells!(posTime_t_dim_id, velTime_t_dim_id, arena, t)
-#         snapshotCells!(cells_T_ID, arena, t)
-#     end
-#     # gif(anim, "anim_2.gif", fps=15)
-#     return posTime_t_dim_id, velTime_t_dim_id, cells_T_ID
-# end
-
-
-function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Dict, Nothing}=nothing; plotsteps=false,
-    animator::Union{Animation, Nothing}=nothing, progress=true, verbose=true)
-
-    posTime_t_dim_id = ElasticArray{Union{Float64, Missing}}(fill(missing, steps, 2, length(arena.cellsList)))
-    velTime_t_dim_id = ElasticArray{Union{Float64, Missing}}(fill(missing, steps, 2, length(arena.cellsList)))
-
-    cells_T_ID = Vector{Vector{Cell}}(undef, steps)
+    # preallocate position, velocity, and cell arrays
+    posTime_t_dim_id = ElasticArray{Union{Float64, Missing}}(fill(missing, length(timeSaves), 2, length(arena.cellsList)))
+    velTime_t_dim_id = ElasticArray{Union{Float64, Missing}}(fill(missing, length(timeSaves), 2, length(arena.cellsList)))
+    cells_T_ID = Vector{Vector{Cell}}(undef, length(timeSaves))
+    # --> record time 0
+    snapshotCells!(posTime_t_dim_id, velTime_t_dim_id, arena, 1)
+    snapshotCells!(cells_T_ID, arena, 1)
 
     # progresMeter
     if progress
-        prog = Progress(steps, 1)
+        prog = Progress(length(timeSteps), 1)
     end
-    for t in 1:steps
+
+    nextSaveTime = 0+saveTimeStep
+    nextSaveInd = 2
+
+    for t in timeSteps[2:end]
 
         # == Movement ==
         for cell in arena.cellsList
             # moveCell!(cell, arena.bounds)
-            moveCell!(cell)
+            moveCell!(cell, stepSize)
         end
 
         # == Collisions ==
-        collidedCellsList_id = collider!(arena; verbose=verbose)
+        collidedCellsList_id = collider!(arena, stepSize; verbose=verbose)
 
         # == Growth ==
         if growthParams != nothing
@@ -83,14 +57,22 @@ function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Dict, Nothin
             nDaughters = 0
         end
 
-        # == Plot data ==
-        if plotsteps||(animator!==nothing)
-            plotArena(arena, collidedCellsList_id, nDaughters, displayPlot=plotsteps, animator=animator)
-        end
+        # savepoint
+        if t >= nextSaveTime
+            # == Plot data ==
+            if plotsteps||(animator!==nothing)
+                plotArena(arena, collidedCellsList_id, nDaughters, displayPlot=plotsteps, animator=animator)
+            end
 
-        # == record data ==
-        snapshotCells!(posTime_t_dim_id, velTime_t_dim_id, arena, t)
-        snapshotCells!(cells_T_ID, arena, t)
+            # == record data ==
+            snapshotCells!(posTime_t_dim_id, velTime_t_dim_id, arena, nextSaveInd)
+            snapshotCells!(cells_T_ID, arena, nextSaveInd)
+
+            # == update save times ==
+            timeSaves[nextSaveInd] = t
+            nextSaveTime += saveTimeStep
+            nextSaveInd += 1
+        end
 
         # progressMeter
         if progress
@@ -98,5 +80,13 @@ function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Dict, Nothin
         end
     end
     # gif(anim, "anim_2.gif", fps=15)
-    return posTime_t_dim_id, velTime_t_dim_id, cells_T_ID
+    return posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, timeSaves
+end
+
+function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Dict, Nothing}=nothing;
+    plotsteps=false, animator::Union{Animation, Nothing}=nothing, progress=true, verbose=true)
+
+    evolveArena!(arena, steps, 1, growthParams;
+        plotsteps=plotsteps, animator=animator, progress=progress, verbose=verbose)
+
 end

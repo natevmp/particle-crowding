@@ -7,15 +7,15 @@ using Statistics
 
 """Construct an arena with randomly distributed cells and evolve it for a specified time."""
 function randArenaEvolve(nCells::Int, time::Real, stepSize::Real, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing;
-    overlapScans=40, plotting=false, animating=false, progress=true, verbose=false, attempts=1)
+    plotting=false, animating=false, progress=true, verbose=false, attempts=1, overlapScans=0)
 
     arena = buildRandArena(arenaParams["bounds"], nCells, arenaParams["radius"], arenaParams["speed"];
-                fixSpeed=true, verbose=verbose, overlapScans=overlapScans, attempts=attempts)
+                fixSpeed=true, verbose=verbose)
 
     arenaCellPositions_dim_id = BParts.cellPositions_DIM_ID(arena)
 
     eKin = BParts.kineticEnergy(arena)
-    # println("::::: Initial total kinetic energy: ", eKin)
+    verbose && println("::::: Initial total kinetic energy: ", eKin)
 
     if animating
         anim = Animation()

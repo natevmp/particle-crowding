@@ -4,62 +4,47 @@ include("../src/bmtheory.jl")
 
 module Test
 
+using Revise
+using LaTeXStrings
 using ..BParts
 using ..Theorist
-using StaticArrays
-using LinearAlgebra
 using Plots
 gr()
-using Distributions
-using LaTeXStrings
+
 # using Debugger
 
-
-### ======== Random arena animation test ========
-
-function randArenaEvolve(nCells::Int, steps::Int; plotting=true, animating=false)
-    arena = buildRandArena(Bounds((0.,10.), (0.,10.)), nCells, 0.08, 0.01, fixSpeed=false)
-    arenaCellPositions_dim_id = BParts.cellPositions_DIM_ID(arena)
-    # s = scatter(arenaCellPositions_dim_id[1,:], arenaCellPositions_dim_id[2,:],
-    #             xlims = (0,10), ylims = (0,10), legend=false)
-    # display(s)
-
-    BParts.fixArenaOverlaps!(arena)
-
-    arenaCellPositions_dim_id = BParts.cellPositions_DIM_ID(arena)
-    # s = scatter(arenaCellPositions_dim_id[1,:], arenaCellPositions_dim_id[2,:],
-    #             xlims = (0,10), ylims = (0,10), legend=false)
-    # display(s)
-
-    eKin = BParts.kineticEnergy(arena)
-    println("::::: Initial total kinetic energy: ", eKin)
-
-    println("\n")
-    println("=== Evolving arena ===")
-    println("\n")
-
-    if animating
-        anim = Animation()
-    else anim = nothing
-    end
-    posTime_t_dim_id, velTime_t_dim_id, cells_T_ID = evolveArena!(arena, steps, plotsteps=plotting, animator=anim)
-    if animating
-        gif(anim, "anim_2.gif", fps=10)
-    end
-
-    eKin = BParts.kineticEnergy(arena)
-    println("::::: Final total kinetic energy: ", eKin)
-
-    return arena, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, eKin
+function fillDensity(arenaParams)
+    xperiod = abs(arenaParams["bounds"][1][2] - arenaParams["bounds"][1][1])
+    yperiod = abs(arenaParams["bounds"][2][2] - arenaParams["bounds"][2][1])
+    n0 = arenaParams["n0"]
+    r = arenaParams["radius"]
+    V = xperiod*yperiod
+    fillDens = n0*π*r^2 / V
+    return fillDens
 end
 
-nCells = 700
-evolveTime = 500
-arena1, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, eKin = randArenaEvolve(nCells, evolveTime, plotting=false)
+arenaParams =
+    Dict(
+        "n0"=>1000,
+        "evolveTime"=> 500,
+        "bounds"=>((0.,10.),(0.,10.)),
+        "radius"=>0.08,
+        "speed"=>0.02
+    )
+println("surface covered: ", fillDensity(arenaParams))
 
-eKinAv = eKin / nCells
+# @time myArena = BParts.buildRandArena(arenaParams["bounds"], arenaParams["n0"], arenaParams["radius"], arenaParams["speed"];
+#     fixSpeed=true, overlapScans=40, attempts=10, verbose=true)
 
-speed_t_id = BParts.speedCalc(velTime_t_dim_id)
+@time arena, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, times_t =
+BParts.randArenaEvolve(arenaParams["n0"], arenaParams["evolveTime"], 0.1, arenaParams)
+
+
+# arena1, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID =
+#     BParts.randArenaEvolve(nCells, evolveTime, 0.1, arenaParams, plotting=false)
+
+
+# speed_t_id = BParts.speedCalc(velTime_t_dim_id)
 # sMean = [sum(speed_id_t[:, t])/size(speed_id_t, 1) for t in 1:size(speed_id_t, 2)]
 
 # rDist = BParts.rayleighDistFit(velTime_t_dim_id)

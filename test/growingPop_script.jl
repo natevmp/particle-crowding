@@ -1,9 +1,7 @@
-using Revise
-using JLD2, ProgressMeter, Statistics
+using JLD2, Statistics
 include("../src/bmparticles.jl")
 include("../src/bmtheory.jl")
 using .BParts
-using .Theorist
 
 nSims = 50
 arenaParams = 

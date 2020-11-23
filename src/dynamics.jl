@@ -1,7 +1,11 @@
 ### ======== dynamics functions ========
 
-function evolveArena!(arena::Arena, time::Real, stepSize::Real, growthParams::Union{Dict, Nothing}=nothing;
-    plotsteps=false, animator::Union{Animation, Nothing}=nothing, progress=true, verbose=true, saveTimeStep=1)
+function evolveArena!(
+    arena::Arena, 
+    time::Real, 
+    stepSize::Real, 
+    growthParams::Union{Dict, Nothing}=nothing;
+    coldGrowth=false, plotsteps=false, animator::Union{Animation, Nothing}=nothing, progress=true, verbose=true, saveTimeStep=1)
 
     # timepoints to evolve
     timeSteps = 0:stepSize:time
@@ -43,26 +47,16 @@ function evolveArena!(arena::Arena, time::Real, stepSize::Real, growthParams::Un
         if growthParams !== nothing
             if t>growthParams["waitTime"]
                 if growthParams["randGrowth"]
-                    # nDaughters = cultivateArena!(
-                    #     arena, 1., growthParams["rateFunc"],
-                    #     growthParams["radius"],
-                    #     growthParams["speed"], randGrowth=true)
-                    nDaughters = cultivateArena!(
-                        arena, 1., growthParams["rateFunc"],
-                        growthParams["radius"],
-                        0., randGrowth=true)
+                    rateFunc = growthParams["rateFunc"]
                 else
-                    # popSizeNew = growthParams["growthFunc"](t)
                     rateFunc(nPop) = growthParams["growthFunc"](t-growthParams["waitTime"]) - nPop
-                    nDaughters = cultivateArena!(
-                        arena, 1., rateFunc,
-                        growthParams["radius"],
-                        growthParams["speed"], randGrowth=false)
-                    # nDaughters = cultivateArena!(
-                    #     arena, 1., rateFunc,
-                    #     growthParams["radius"],
-                    #     0., randGrowth=false)
                 end
+                nDaughters = cultivateArena!(
+                    arena, stepSize, rateFunc,
+                    growthParams["radius"],
+                    growthParams["speed"];
+                    randGrowth=growthParams["randGrowth"])
+
                 if nDaughters > 0
                     rmComDriftArena!(arena.cellsList)
                     # rescaleEnergy!(arena.cellsList, Eav)

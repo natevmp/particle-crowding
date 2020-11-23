@@ -6,8 +6,13 @@ using Statistics
 
 
 """Construct an arena with randomly distributed cells and evolve it for a specified time."""
-function randArenaEvolve(nCells::Int, time::Real, stepSize::Real, arenaParams::Dict, growthParams::Union{Dict, Nothing}=nothing;
-    plotting=false, animating=false, progress=true, verbose=false, attempts=1, overlapScans=0)
+function randArenaEvolve(
+    nCells::Int,
+    time::Real,
+    stepSize::Real,
+    arenaParams::Dict,
+    growthParams::Union{Dict, Nothing}=nothing;
+    coldGrowth=false, plotting=false, animating=false, progress=true, verbose=false, attempts=1, overlapScans=0)
 
     arena = buildRandArena(arenaParams["bounds"], nCells, arenaParams["radius"], arenaParams["speed"];
                 fixSpeed=true, verbose=verbose)
@@ -26,21 +31,25 @@ function randArenaEvolve(nCells::Int, time::Real, stepSize::Real, arenaParams::D
         evolveGrowthParams = nothing
     else
         logisticRate(n::Real, ρ::Real, k::Real) = n*ρ*(1-n/k)
-
         evolveGrowthParams =
             Dict(
                 "rateFunc"=> n->logisticRate(n, growthParams["ρ"], growthParams["k"]),
                 "growthFunc"=> t->logisticGrowth(t, growthParams["ρ"], growthParams["k"],
                                                     arenaParams["n0"]),
                 "radius"=> arenaParams["radius"],
-                "speed"=> arenaParams["speed"],
                 "randGrowth"=> growthParams["randGrowth"],
                 "waitTime"=>growthParams["waitTime"]
             )
+            if coldGrowth
+                evolveGrowthParams["speed"] = 0.
+            else
+                evolveGrowthParams["speed"] = arenaParams["speed"]
+            end
     end
 
     posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, times_t =
-        evolveArena!(arena, time, stepSize, evolveGrowthParams, plotsteps=plotting, animator=anim, progress=progress, verbose=verbose)
+        evolveArena!(arena, time, stepSize, evolveGrowthParams;
+            coldGrowth=coldGrowth, plotsteps=plotting, animator=anim, progress=progress, verbose=verbose)
 
     if animating
         gif(anim, "figures/animation.gif", fps=10)
@@ -61,6 +70,12 @@ function randArenaEvolve(nCells::Int, steps::Int, arenaParams::Dict, growthParam
 end
 
 # ===== Analysing experiments =====
+function extendParams!(arenaParams::Dict)
+    bounds = arenaParams["bounds"]
+    arenaParams["volume"] = abs(bounds[1][2]-bounds[1][1])*abs(bounds[2][2]-bounds[2][1])
+    arenaParams["bperiod"] = [abs(bounds[1][2]-bounds[1][1]), abs(bounds[2][2]-bounds[2][1])]
+    arenaParams["E"] = arenaParams["speed"]^2/2
+end
 
 function kineticEnergy(arena::Arena)
     sum(v -> norm(v)^2/2, [c.vel for c in arena.cellsList])

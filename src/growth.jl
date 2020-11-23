@@ -15,7 +15,7 @@ function cultivateArena!(arena::Arena, dt::Real, grFunc::Function, r::Real, spee
         newcells_c = Vector{Cell}(undef, n)
         #create n random cells
         for cid in 1:n
-            newcells_c[cid] = randCell(arena.bounds, r, speed, fixSpeed=false)
+            newcells_c[cid] = randCell(arena.bounds, r, speed, fixSpeed=true)
         end
         
         # === find and fix potential overlaps ===

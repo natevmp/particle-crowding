@@ -37,6 +37,10 @@ function buildRandArena(bounds::Bounds, nCells::Int, cellRadius::Real, s0::Real;
         end
     end
 
+    # remove COM drift
+    verbose && println("Removing center of mass drift...")
+    rmComDriftArena!(arena.cellsList)
+
     verbose && println("Arena with "*string(length(arena.cellsList))*" cells built.")
     # test arena overlaps one final time
 
@@ -45,7 +49,7 @@ end
 
 """Build a new arena with a specified number of randomly placed cells."""
 function buildRandArena(bounds::Tuple{Tuple{Real, Real}, Tuple{Real, Real}},
-     nCells::Int, cellRadius::Real, s0::Real; fixSpeed=false, verbose=false, overlapScans=40, attempts=10)
+     nCells::Int, cellRadius::Real, s0::Real; fixSpeed=true, verbose=false, overlapScans=40, attempts=10)
      bounds = Bounds(bounds[1], bounds[2])
      buildRandArena(bounds, nCells, cellRadius, s0;
         fixSpeed=fixSpeed, attempts=attempts, verbose=verbose, overlapScans=overlapScans)
@@ -112,7 +116,7 @@ end
 
 
 """Create a random cell within given boundaries"""
-function randCell(bounds::Bounds, radius::Real, speed::Real; fixSpeed=false)
+function randCell(bounds::Bounds, radius::Real, speed::Real; fixSpeed=true)
     xPos = bounds.x[1] + (bounds.x[2]-bounds.x[1])*rand()
     yPos = bounds.y[1] + (bounds.y[2]-bounds.y[1])*rand()
 
@@ -123,7 +127,7 @@ function randCell(bounds::Bounds, radius::Real, speed::Real; fixSpeed=false)
         xVel = speed * cos(α)
         yVel = speed * sin(α)
     else
-        s = rand(Rayleigh(speed*√(2/π)))
+        # s = rand( Rayleigh( √(2)*speed/π ) )
         α = rand() * 2*π
         xVel = s * cos(α)
         yVel = s * sin(α)

@@ -114,7 +114,7 @@ function collTimeCompare(arena::Arena, tStep::Real, nbh_c::Vararg{Int}; verbose=
     cellPairsInd_p = getPairs(nbh_c...)
     timepair_tp = [(collTimeCalc(arenaIndsToCells(arena, cpi)..., arena.bounds, tStep; verbose=verbose), cpi)
                         for cpi in cellPairsInd_p]
-    return sort!(filter!(tp -> tp[1]>0, timepair_tp), rev=true)[1]
+    return sort!( filter!(tp -> tp[1]>0, timepair_tp), rev=true )[1]
 end
 
 """Perform collision of two cells."""

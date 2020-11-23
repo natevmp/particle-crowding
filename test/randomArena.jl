@@ -9,9 +9,8 @@ using LaTeXStrings
 using ..BParts
 using ..Theorist
 using Plots
+theme(:juno)
 gr()
-
-# using Debugger
 
 function fillDensity(arenaParams)
     xperiod = abs(arenaParams["bounds"][1][2] - arenaParams["bounds"][1][1])
@@ -26,7 +25,7 @@ end
 arenaParams =
     Dict(
         "n0"=>1000,
-        "evolveTime"=> 500,
+        "evolveTime"=> 100,
         "bounds"=>((0.,10.),(0.,10.)),
         "radius"=>0.08,
         "speed"=>0.02
@@ -37,7 +36,7 @@ println("surface covered: ", fillDensity(arenaParams))
 #     fixSpeed=true, overlapScans=40, attempts=10, verbose=true)
 
 @time arena, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, times_t =
-BParts.randArenaEvolve(arenaParams["n0"], arenaParams["evolveTime"], 0.1, arenaParams)
+    BParts.randArenaEvolve(arenaParams["n0"], arenaParams["evolveTime"], 0.1, arenaParams)
 
 
 # arena1, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID =

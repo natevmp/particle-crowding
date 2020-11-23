@@ -17,6 +17,9 @@ function evolveArena!(arena::Arena, time::Real, stepSize::Real, growthParams::Un
     snapshotCells!(posTime_t_dim_id, velTime_t_dim_id, arena, 1)
     snapshotCells!(cells_T_ID, arena, 1)
 
+    # average particle energy
+    Eav = avParticleEnergy(arena.cellsList)
+
     # progresMeter
     if progress
         prog = Progress(length(timeSteps), 1)
@@ -37,13 +40,17 @@ function evolveArena!(arena::Arena, time::Real, stepSize::Real, growthParams::Un
         collidedCellsList_id = collider!(arena, stepSize; verbose=verbose)
 
         # == Growth ==
-        if growthParams != nothing
+        if growthParams !== nothing
             if t>growthParams["waitTime"]
                 if growthParams["randGrowth"]
+                    # nDaughters = cultivateArena!(
+                    #     arena, 1., growthParams["rateFunc"],
+                    #     growthParams["radius"],
+                    #     growthParams["speed"], randGrowth=true)
                     nDaughters = cultivateArena!(
                         arena, 1., growthParams["rateFunc"],
                         growthParams["radius"],
-                        growthParams["speed"], randGrowth=true)
+                        0., randGrowth=true)
                 else
                     # popSizeNew = growthParams["growthFunc"](t)
                     rateFunc(nPop) = growthParams["growthFunc"](t-growthParams["waitTime"]) - nPop
@@ -51,6 +58,14 @@ function evolveArena!(arena::Arena, time::Real, stepSize::Real, growthParams::Un
                         arena, 1., rateFunc,
                         growthParams["radius"],
                         growthParams["speed"], randGrowth=false)
+                    # nDaughters = cultivateArena!(
+                    #     arena, 1., rateFunc,
+                    #     growthParams["radius"],
+                    #     0., randGrowth=false)
+                end
+                if nDaughters > 0
+                    rmComDriftArena!(arena.cellsList)
+                    # rescaleEnergy!(arena.cellsList, Eav)
                 end
             end
         else
@@ -89,4 +104,49 @@ function evolveArena!(arena::Arena, steps::Int, growthParams::Union{Dict, Nothin
     evolveArena!(arena, steps, 1, growthParams;
         plotsteps=plotsteps, animator=animator, progress=progress, verbose=verbose)
 
+end
+
+# ====== COM normalization =====
+function avParticleEnergy(cellsList::AbstractVector{C}) where C<:Cell
+    ETot = 0.
+    for cell in cellsList
+        ETot += norm(cell.vel)^2/2
+    end
+    return ETot / length(cellsList)
+end
+
+function comVel(cellsList::AbstractVector{C}) where C<:Cell
+    vTot = MVector{2,Float64}([0.,0.])
+    for cell in cellsList
+        vTot .+= cell.vel
+    end
+    return vTot / length(cellsList)
+end
+
+function rmComDriftArena!(cellsList::AbstractVector{C}) where C<:Cell
+    # COM (drift) velocity
+    vCom = comVel(cellsList)
+    # COM (drift) energy
+    ECom = norm(vCom)^2/2
+    # average particle energy
+    E = avParticleEnergy(cellsList)
+
+    χ = sqrt(E/(E-ECom))
+
+    # subtract drift and rescale each cell velocity
+    for cell in cellsList
+        cell.vel .= χ*(cell.vel - vCom)
+    end
+    return nothing
+end
+
+function rescaleEnergy!(cellsList::AbstractVector{C}, Etarget::Real) where C<:Cell
+    # current average energy
+    Ecur = avParticleEnergy(cellsList)
+    χ = sqrt(Etarget/Ecur)
+    # rescale each cell velocity to obtain target average energy
+    for cell in cellsList
+        cell.vel .*= χ
+    end
+    return nothing
 end

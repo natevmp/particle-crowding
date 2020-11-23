@@ -29,7 +29,7 @@ BParts.extendParams!(arenaParams)
 
 # ==== Run simulations ====
 pos_Sim = Array{Array{Union{Float64, Missing},3}}(undef, nSims)
-@showprogress for i in 1:nSims
+for i in 1:nSims
     succes = false
     while !succes 
         # try/catch construction in case boundserror occurs

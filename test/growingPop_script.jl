@@ -17,6 +17,7 @@ growthParams =
         "ρ"=> 0.002,
         "k"=> 5000,
         "randGrowth"=> false,
+        "coldGrowth"=> false,
         "waitTime"=> 500
     )
 
@@ -36,7 +37,7 @@ for i in 1:nSims
                         arenaParams["timeStep"],
                         arenaParams,
                         growthParams;
-                        coldGrowth=false,
+                        coldGrowth=growthParams["coldGrowth"],
                         progress=false,
                         verbose=false);
             pos_Sim[i] = posSim_t_dim_id

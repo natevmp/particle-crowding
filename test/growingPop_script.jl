@@ -1,8 +1,6 @@
 using JLD2, Statistics
 include("../src/bmparticles.jl")
-include("../src/bmtheory.jl")
 using .BParts
-using .Theorist
 
 nSims = 50
 arenaParams = 

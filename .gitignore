@@ -27,8 +27,8 @@ Manifest.toml
 particle-crowding.code-workspace
 
 # test files for personal use
-*_testingStuff.jl
+# *_testingStuff.jl
 
 # data
-data/*
-figures/*
+# data/*
+# figures/*

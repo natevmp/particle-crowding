@@ -14,10 +14,10 @@ pyplot()
 ##
 # files_f = glob("growingPop_multSims_rho0*.jld2", "./data/many_gp_50613208")
 # filesSims_f = glob(r"growingPop_multSims_rho0*/[0-9]/.jld", "./data/manyGP_02-16")
+filesParams_f = glob("growingPop_multSims_*params.jld", "./data/manyGP_02-16")
+filesSims_f = glob(glob"growingPop_multSims_*[0-9].jld", "./data/manyGP_02-16")
 # filesParams_f = glob("growingPop_multSims_*params.jld", "./data/manyGP_04-06")
 # filesSims_f = glob(glob"growingPop_multSims_*[0-9].jld", "./data/manyGP_04-06")
-filesParams_f = glob("growingPop_multSims_*params.jld", "./data/manyGP_04-06")
-filesSims_f = glob(glob"growingPop_multSims_*[0-9].jld", "./data/manyGP_04-06")
 
 ##
 params = load(filesParams_f[1])

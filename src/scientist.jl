@@ -1,6 +1,6 @@
-using Distributions
-using PyCall
-using Statistics
+# using Distributions
+# # using PyCall
+# using Statistics
 
 # ===== Running experiment =====
 
@@ -50,6 +50,58 @@ function randArenaEvolve(
     posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, times_t =
         evolveArena!(arena, time, stepSize, evolveGrowthParams;
             coldGrowth=coldGrowth, plotsteps=plotting, animator=anim, progress=progress, verbose=verbose)
+
+    if animating
+        gif(anim, "figures/animation.gif", fps=10)
+    end
+
+    eKin = BParts.kineticEnergy(arena)
+    # println("::::: Final total kinetic energy: ", eKin)
+
+    return arena, posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, times_t
+end
+
+function randArenaEvolve(
+    arena::Arena,
+    time::Real,
+    stepSize::Real,
+    arenaParams::Dict,
+    growthParams::Union{Dict, Nothing}=nothing;
+    coldGrowth=false, plotting=false, animating=false, progress=true, verbose=false, attempts=1, overlapScans=0, saveTimeStep=1)
+
+    arenaCellPositions_dim_id = BParts.cellPositions_DIM_ID(arena)
+
+    eKin = BParts.kineticEnergy(arena)
+    verbose && println("::::: Initial total kinetic energy: ", eKin)
+
+    if animating
+        anim = Animation()
+    else anim = nothing
+    end
+
+    if isnothing(growthParams)
+        evolveGrowthParams = nothing
+    else
+        logisticRate(n::Real, ρ::Real, k::Real) = n*ρ*(1-n/k)
+        evolveGrowthParams =
+            Dict(
+                "rateFunc"=> n->logisticRate(n, growthParams["ρ"], growthParams["k"]),
+                "growthFunc"=> t->logisticGrowth(t, growthParams["ρ"], growthParams["k"],
+                                                    arenaParams["n0"]),
+                "radius"=> arenaParams["radius"],
+                "randGrowth"=> growthParams["randGrowth"],
+                "waitTime"=>growthParams["waitTime"]
+            )
+            if coldGrowth
+                evolveGrowthParams["speed"] = 0.
+            else
+                evolveGrowthParams["speed"] = arenaParams["speed"]
+            end
+    end
+
+    posTime_t_dim_id, velTime_t_dim_id, cells_T_ID, times_t =
+        evolveArena!(arena, time, stepSize, evolveGrowthParams;
+            coldGrowth=coldGrowth, plotsteps=plotting, animator=anim, progress=progress, verbose=verbose, saveTimeStep=saveTimeStep)
 
     if animating
         gif(anim, "figures/animation.gif", fps=10)

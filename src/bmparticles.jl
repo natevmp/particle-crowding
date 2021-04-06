@@ -6,17 +6,17 @@ bmparticles:
 =#
 
 module BParts
-export Cell, Arena, evolveArena!, cultivateArena!, Bounds, moveCell!, buildRandArena
+export evolveArena!, cultivateArena!, moveCell!, buildRandArena
 
 using StaticArrays
 using ElasticArrays
 using LinearAlgebra
 using Distances
 using NearestNeighbors
-using Random, Distributions, PoissonRandom
+using Random, Distributions, PoissonRandom, Statistics
 using ProgressMeter
 using Plots
-
+# plotlyjs()
 
 ### ======== Structures ========
 struct Cell{T<:MVector{2,Float64}, R<:AbstractFloat}
@@ -48,6 +48,7 @@ include("arenabuilder.jl")
 include("dynamics.jl")
 include("positions.jl")
 include("movement.jl")
+# include("collisionsLeg.jl")
 include("collisions.jl")
 include("growth.jl")
 include("scientist.jl")

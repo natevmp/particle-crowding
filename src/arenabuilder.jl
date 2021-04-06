@@ -146,17 +146,64 @@ end
 ### ======== visualization ========
 
 """Plot cell positions in a given arena"""
-function plotArena(arena::Arena, collidedCellsList_id::Union{Vector{Int}, Nothing}, nDaughters::Int; displayPlot=true, animator::Union{Animation, Nothing}=nothing)
+function plotArena(arena::Arena, collidedCellsList_id::Union{Vector{Int}, Nothing}, nDaughters::Int; 
+    displayPlot=true,
+    arrowscale=10.,
+    title="",
+    cellIDs::Bool=false,
+    spotlightCID::AbstractVector{Int}=[],
+    xlims::Union{Tuple, Nothing}=nothing,
+    ylims::Union{Tuple, Nothing}=nothing,
+    animator::Union{Animation, Nothing}=nothing)
+
     arenaCellPositions_dim_id = cellPositionsPeriodic_DIM_ID(arena)
-    s = scatter(arenaCellPositions_dim_id[1,:], arenaCellPositions_dim_id[2,:], xlims = (0,10), ylims = (0,10), legend=false)
+    arenaCellVelocities_dim_id = cellVelocities_DIM_ID(arena)
+
+    annotations = cellIDs ? string.(1:length(arena.cellsList)) : nothing
+
+    s = scatter(
+        arenaCellPositions_dim_id[1,:], arenaCellPositions_dim_id[2,:],
+        aspect_ratio=1,
+        showaxis=false,
+        size=(500,500),
+        series_annotations=annotations,
+        legend=false
+        )
+
     if !(collidedCellsList_id===nothing)
         collisions_dim_id = arenaCellPositions_dim_id[:, collidedCellsList_id]
         scatter!(collisions_dim_id[1,:], collisions_dim_id[2,:])
     end
+    quiver!(
+        arenaCellPositions_dim_id[1,:], arenaCellPositions_dim_id[2,:],
+        quiver=(
+            arrowscale*arenaCellVelocities_dim_id[1,:],
+            arrowscale*arenaCellVelocities_dim_id[2,:]
+            )
+        )
+
     if nDaughters > 0
         daughters_dim_id = arenaCellPositions_dim_id[:, end-nDaughters+1:end]
         scatter!(daughters_dim_id[1,:], daughters_dim_id[2,:])
     end
+
+    if length(spotlightCID)>0
+        spotlight_dim_id = arenaCellPositions_dim_id[:,spotlightCID]
+        scatter!(spotlight_dim_id[1,:], spotlight_dim_id[2,:])
+    end
+
+    if isnothing(xlims)
+        xlims!(arena.bounds.x[1], arena.bounds.x[2])
+    else
+        xlims!(xlims...)
+    end
+    if isnothing(ylims)
+        ylims!(arena.bounds.y[1], arena.bounds.y[2])
+    else
+        ylims!(ylims...)
+    end
+    title!(title)
+
     if displayPlot
         display(s)
     end
@@ -171,4 +218,46 @@ end
 """Get cells in an arena from their index"""
 function arenaIndsToCells(arena::Arena, inds_i::Union{Tuple{N, Int}, Array{Int, N}} where N)
     [arena.cellsList[ind] for ind in inds_i]
+end
+
+
+"""Search for collisions."""
+function collisionFinder(arena::Arena)
+    positionsP_dim_id = cellPositionsPeriodic_DIM_ID(arena)
+    collisionRadius = collisionCrossSection(arena)
+    return collisionFinder(positionsP_dim_id, positionsP_dim_id, collisionRadius, arena.bounds)
+end
+
+function collisionFinder(arena::Arena, inds::Vector{Int64})
+    positionsP_dim_id = cellPositionsPeriodic_DIM_ID(arena)
+    collisionRadius = collisionCrossSection(arena)
+    return collisionFinder(positionsP_dim_id, positionsP_dim_id[:,inds], collisionRadius, arena.bounds)
+end
+
+function collisionFinder(positions_dim_id::AbstractArray{T, 2} where T,
+    locations_dim_id::AbstractArray{T, 2} where T,
+    collisionRadius::Float64, bounds::Bounds)
+tree = BallTree(positions_dim_id, PeriodicEuclidean([bounds.xLen, bounds.yLen]))
+return inrange(tree, locations_dim_id, collisionRadius)
+end
+
+function nbhComposer!(nbh::Vector, nbhoods_id::AbstractVector{V} where V)
+    # take union of all neighborhoods of cells in current nbh
+    union!(nbh, (nbhoods_id[i] for i in nbh)...)
+end
+
+function collCheck!(nbh::Vector, collidedCellsList::Array{Int})
+    if length(nbh) < 2
+        return false
+    end
+    removeDoubleCounts!(nbh, collidedCellsList)
+    if length(nbh) < 2
+        return false
+    else
+        return true
+    end
+end
+
+function removeDoubleCounts!(nbh::Vector{Int}, pastColls::Vector{Int})
+    deleteat!(nbh, [(nbh[i] in pastColls) for i in 1:length(nbh)])
 end

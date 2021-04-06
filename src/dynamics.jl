@@ -5,7 +5,7 @@ function evolveArena!(
     time::Real, 
     stepSize::Real, 
     growthParams::Union{Dict, Nothing}=nothing;
-    coldGrowth=false, plotsteps=false, animator::Union{Animation, Nothing}=nothing, progress=true, verbose=true, saveTimeStep=1)
+    coldGrowth=false, plotsteps=false, animator::Union{Animation, Nothing}=nothing, progress=true, verbose=false, saveTimeStep=1)
 
     # timepoints to evolve
     timeSteps = 0:stepSize:time
@@ -34,6 +34,9 @@ function evolveArena!(
 
     for t in timeSteps[2:end]
 
+        ## ! ==== DEBUG ====
+        # println("\n==============\n==== timestep ", t, " ====\n==============\n")
+        ## ! ===============
         # == Movement ==
         for cell in arena.cellsList
             # moveCell!(cell, arena.bounds)
@@ -42,6 +45,10 @@ function evolveArena!(
 
         # == Collisions ==
         collidedCellsList_id = collider!(arena, stepSize; verbose=verbose)
+
+        ## ! ==== DEBUG ====
+        # verbose ? println(length(collidedCellsList_id), " cells collided in time step.") : nothing
+        ## ! ===============
 
         # == Growth ==
         if growthParams !== nothing
@@ -70,7 +77,7 @@ function evolveArena!(
         if t >= nextSaveTime
             # == Plot data ==
             if plotsteps||(animator!==nothing)
-                plotArena(arena, collidedCellsList_id, nDaughters, displayPlot=plotsteps, animator=animator)
+                plotArena(arena, collidedCellsList_id, nDaughters, displayPlot=plotsteps, animator=animator, cellIDs=true)
             end
 
             # == record data ==
@@ -86,6 +93,7 @@ function evolveArena!(
         # progressMeter
         if progress
             next!(prog)
+            # verbose ? println("\rTime "*string(t)) : nothing
         end
     end
     # gif(anim, "anim_2.gif", fps=15)

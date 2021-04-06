@@ -1,5 +1,7 @@
 Packages:
 
+JLD2
+Statistics
 StaticArrays
 ElasticArrays
 LinearAlgebra

@@ -45,6 +45,18 @@ function cellPositionsPeriodic_DIM_ID(arena::Arena)
     return positionsP_dim_id
 end
 
+"""
+Get _dim_id array of cell positions in primary box, with cell id's specified by cells_cid.
+"""
+function cellPositionsPeriodic_DIM_ID(arena::Arena, cells_cid::AbstractVector{Int})
+    positionsP_dim_id = Array{Float64,2}(undef, 2, length(cells_cid))
+    for (i, cid) in enumerate(cells_cid)
+        positionsP_dim_id[1,i] = toBoundsPeriodic(arena.cellsList[cid].pos[1], arena.bounds.x)
+        positionsP_dim_id[2,i] = toBoundsPeriodic(arena.cellsList[cid].pos[2], arena.bounds.y)
+    end
+    return positionsP_dim_id
+end
+
 function cellPositions_DIM_ID(cellsList_c::Vector{C} where C<:Cell)
     positions_dim_id = Array{Float64,2}(undef, 2, length(cellsList_c))
     for (i, cell) in enumerate(cellsList_c)
@@ -59,28 +71,31 @@ function cellPositions_DIM_ID(arena::Arena, cellsList_id::Vector{Int})
 end
 
 function cellDistance(cellA::Cell, cellB::Cell, bounds::Bounds)
-    # norm(cellA.pos - cellB.pos)
-    # dx = abs(cellA.pos[1]-cellB.pos[1])
-    # dy = abs(cellA.pos[2]-cellB.pos[2])
-    #
-    # if (dx > bounds.xLen/2)
-    #     dx = bounds.xLen - dx
-    # end
-    # if (dy > bounds.yLen/2)
-    #     dy = bounds.yLen - dy
-    # end
-    #
-    # return sqrt(dx^2 + dy^2)
-    # evaluate(PeriodicEuclidean([bounds.xLen, bounds.yLen]), cellA.pos, cellB.pos)
     peuclidean(cellA.pos, cellB.pos, [bounds.xLen, bounds.yLen])
+end
+
+function cellDistance(cellA::Cell, cellList_c::AbstractVector, bounds::Bounds)
+    distances_c = Vector{Float64}(undef, length(cellList_c))
+    for (i, cell) in enumerate(cellList_c)
+        distances_c[i] = cellDistance(cellA, cell, bounds)
+    end
+    return distances_c
 end
 
 function cellVelocities_ID_DIM(arena::Arena)
     velocities_id_dim = Array{Float64,2}(undef, length(arena.cellsList), 2)
     for (i, cell) in enumerate(arena.cellsList)
-        velocities_id_dim[i,:] = cell.pos
+        velocities_id_dim[i,:] = cell.vel
     end
     return velocities_id_dim
+end
+
+function cellVelocities_DIM_ID(arena::Arena)
+    velocities_dim_id = Array{Float64,2}(undef, 2, length(arena.cellsList))
+    for (i, cell) in enumerate(arena.cellsList)
+        velocities_dim_id[:,i] = cell.vel
+    end
+    return velocities_dim_id
 end
 
 

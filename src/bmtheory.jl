@@ -32,9 +32,15 @@ end
 
 
 # ====== System data and values ======
+function extendParams!(arenaParams::Dict)
+    bounds = arenaParams["bounds"]
+    arenaParams["volume"] = abs(bounds[1][2]-bounds[1][1])*abs(bounds[2][2]-bounds[2][1])
+    arenaParams["bperiod"] = [abs(bounds[1][2]-bounds[1][1]), abs(bounds[2][2]-bounds[2][1])]
+end
 
-function thermalValues(arenaParams::Dict, growthFunc::Union{Function, Nothing}=nothing)
-    thermVals = Dict()
+function thermalValues(params::Dict, growthFunc::Union{Function, Nothing}=nothing)
+    arenaParams = deepcopy(params)
+    extendParams!(arenaParams)
     radius = arenaParams["radius"]
     s0Av = arenaParams["speed"]
     bounds = arenaParams["bounds"]
@@ -42,6 +48,7 @@ function thermalValues(arenaParams::Dict, growthFunc::Union{Function, Nothing}=n
     n0 = arenaParams["n0"]
     σc = 2*2radius
     E = s0Av^2 / 2
+    thermVals = Dict()
     thermVals["σc"] = σc
     thermVals["E"] = E
     if isnothing(growthFunc)

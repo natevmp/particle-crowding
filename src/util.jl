@@ -43,3 +43,4 @@ function connectingVector(pA::AbstractVector, pB::AbstractVector, bounds::BParts
 
     return @MVector[dx, dy]
 end
+

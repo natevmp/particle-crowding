@@ -1,25 +1,25 @@
-using JLD2, Statistics
 include("../src/bmparticles.jl")
 include("../src/bmtheory.jl")
 using .BParts
 using .Theorist
 
 using Plots
-gr()
+pyplot()
 
+##
 arenaParams = 
     Dict(
         "n0"=>500,
-        "evolveTime"=>5500,
-        "bounds"=>((0.,22.4),(0.,22.4)), 
+        "evolveTime"=>3500,
+        "bounds"=>((0.,5),(0.,5)), 
         "radius"=>0.08, 
         "speed"=>0.02,
-        "timeStep"=> 0.1
+        "timeStep"=> 0.4
     )
 growthParams =
     Dict(
-        "ρ"=> 0.002,
-        "k"=> 5000,
+        "ρ"=> 0,
+        "k"=> 500,
         "randGrowth"=> false,
         "waitTime"=> 500
     )
@@ -43,7 +43,7 @@ f1 = plot(0:(arenaParams["evolveTime"]-1-growthParams["waitTime"]),
         label="growth function",
         linewidth=2,
         size=(450,300),
-        legend=:topleft)
+        legend=:bottomright)
 
 xlabel!("time")
 ylabel!("occupied surface density")
@@ -52,4 +52,4 @@ display(f1)
 
 # savefig(f1, "../Figures/rho"*string(growthParams["ρ"])*"surfaceDensity_time.pdf")
 
-savefig(f1, "densityGrowth.pdf")
+# savefig(f1, "densityGrowth.pdf")

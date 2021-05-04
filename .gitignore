@@ -30,5 +30,5 @@ particle-crowding.code-workspace
 # *_testingStuff.jl
 
 # data
-# data/*
-# figures/*
+data/*
+figures/*

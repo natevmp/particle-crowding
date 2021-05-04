@@ -204,9 +204,9 @@ end
 
 function velocityAutocorrelation(vel_t_dim_id::AbstractArray)
     # vCorr_id_t = zeros(Float64, size(vel_id_t_dim)[1], size(vel_id_t_dim)[2])
-    vCorr_t = zeros(Float64, size(vel_t_dim_id)[1])
+    vCorr_t = zeros(Float64, size(vel_t_dim_id,1))
     for t in 1:length(vCorr_t)
-        vCorr_t[t] = mean([ vel_t_dim_id[1, :, id] ⋅ vel_t_dim_id[t, :, id] for id in 1:(size(vel_t_dim_id)[3]) ])
+        vCorr_t[t] = mean([ vel_t_dim_id[1, :, id] ⋅ vel_t_dim_id[t, :, id] for id in 1:(size(vel_t_dim_id,3)) ])
     end
     return vCorr_t
 end

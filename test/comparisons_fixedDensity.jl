@@ -2,49 +2,77 @@ include("../src/bmparticles.jl")
 include("../src/bmtheory.jl")
 using .BParts
 using .Theorist
-using DifferentialEquations, Distributions
+using Distributions
 
+##
 using Plots
 # plotly()
-gr()
+pyplot()
 
-# ====== Fixed Density ======
+## ====== Fixed Density ======
 # First we compare the particle simulation with the simulations of the Langevin equation (and some analytical results from it) for a fixed population size.
 
 # ---- Parameters for simulation ----
-function extendParams!(arenaParams::Dict)
-    bounds = arenaParams["bounds"]
-    arenaParams["volume"] = abs(bounds[1][2]-bounds[1][1])*abs(bounds[2][2]-bounds[2][1])
-    arenaParams["bperiod"] = [abs(bounds[1][2]-bounds[1][1]), abs(bounds[2][2]-bounds[2][1])]
-end
-arenaParams = 
-    Dict(
-        "n0"=>1600,
-        "evolveTime"=> 2000,
-        "bounds"=>((0.,40.),(0.,40.)), 
-        "radius"=>0.08, 
-        "speed"=>0.03
-    )
 
-extendParams!(arenaParams)
+arenaParams = Dict(
+    "n0"=>400,
+    "evolveTime"=>2500,
+    # "evolveTime"=>1000,
+    "bounds"=>((0.,20),(0.,20)), 
+    "radius"=>0.08, 
+    "speed"=>0.02,
+    "timeStep"=> 0.3
+)
+growthParams = Dict(
+    "ρ"=> 0,
+    "k"=> 1000,
+    "randGrowth"=> false,
+    "coldGrowth"=> false,
+    "waitTime"=> 500
+)
+
+Theorist.extendParams!(arenaParams)
 for p in arenaParams
     println(p)
 end
 
 thermVals = Theorist.thermalValues(arenaParams)
+volumeDens(n, r, v) = n*π*r^2/v
+println("mean free time: ", 1/thermVals["γ"])
+println("initial volume density: ", volumeDens(arenaParams["n0"], arenaParams["radius"], arenaParams["volume"]))
+# println("final volume density: ", volumeDens(growthParams["k"], arenaParams["radius"], arenaParams["volume"]))
 
-# ---- Simulations ----
-
-# -- Particle simulation --
-arena, pos_t_dim_id, vel_t_dim_id, cells_T_ID = BParts.randArenaEvolve(arenaParams["n0"], arenaParams["evolveTime"], arenaParams)
+# ======== Simulations ========
+## ---- Build arena ----
+arena = BParts.buildRandArena(arenaParams["bounds"], arenaParams["n0"], arenaParams["radius"], arenaParams["speed"], verbose=true)
 
 println("energy per cell: ", BParts.kineticEnergy(arena) / arenaParams["n0"])
 
-# -- Langevin equation --
-# run an ensemble of Langevin equations
-langevinEnsemble = Theorist.runLangevinSims(1000, arenaParams)
+## ---- Run simulations ----
 
-# ---- Analysis ----
+println("running simulation...")
+@time arena, posSim_t_dim_id, __, ___ = 
+    BParts.randArenaEvolve(
+            arena,
+            arenaParams["evolveTime"], 
+            arenaParams["timeStep"],
+            arenaParams,
+            growthParams;
+            # saveTimeStep=arenaParams["timeStep"],
+            coldGrowth=growthParams["coldGrowth"],
+            plotting=false,
+            progress=true,
+            verbose=true)
+            
+println("done")
+
+## ---- Langevin equation ----
+# run an ensemble of Langevin equations
+@time langevinEnsemble = Theorist.runLangevinSims(1000, arenaParams)
+
+
+
+## ---- Analysis ----
 # -- Speed distributions --
 # For a well mixed population the particle speeds are predicted to be Rayleigh distributed with shape parameter $\sigma = \sqrt{E}$ where $E$ is the average particle energie.
 
@@ -59,8 +87,6 @@ plot!(range(0,0.10, length=100), pdf.(rDistPred, range(0,0.10, length=100)), lin
 xlabel!("speed")
 ylabel!("distribution")
 display(p1)
-
-# While the particle simulation agrees nicely with the predicted Rayleigh distribution, the Langevin simulations appear to deviate slightly. I haven't quite figured out what is causing this. Especially since technically the predicted rayleigh is derived from the Langevin equation...
 
 # -- Velocity autocorrelation
 corrTime = 200

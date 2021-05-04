@@ -66,6 +66,9 @@ function evolveArena!(
 
                 if nDaughters > 0
                     rmComDriftArena!(arena.cellsList)
+                    ## ! ==== DEBUG ====
+                    verbose && println("removing com drift")
+                    ## ! ===============
                     # rescaleEnergy!(arena.cellsList, Eav)
                 end
             end

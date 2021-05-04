@@ -22,17 +22,17 @@ if LOADARENA
     @load "data/arenaInit_n500preError.jld2" arena arenaParams growthParams
 else
     arenaParams = Dict(
-            "n0"=>500,
+            "n0"=>100,
             "evolveTime"=>100,
             # "evolveTime"=>1000,
-            "bounds"=>((0.,25),(0.,25)), 
+            "bounds"=>((0.,5),(0.,5)), 
             "radius"=>0.08, 
             "speed"=>0.02,
             "timeStep"=> 0.3
         )
     growthParams = Dict(
             "ρ"=> 0.002,
-            "k"=> 5000,
+            "k"=> 100,
             "randGrowth"=> false,
             "coldGrowth"=> false,
             "waitTime"=> 500
@@ -65,50 +65,50 @@ println("done")
 
 # @save "data/arenaInit_n"*string(arenaParams["n0"])*"preError.jld2" arena arenaParams growthParams
 
-## ==== Get mean squared displacements ====
-msdTimes = (growthParams["waitTime"]+1, arenaParams["evolveTime"])
-msdPart_t = BParts.meanSquaredDisplacement(posSim_t_dim_id, msdTimes)
+# ## ==== Get mean squared displacements ====
+# msdTimes = (growthParams["waitTime"]+1, arenaParams["evolveTime"])
+# msdPart_t = BParts.meanSquaredDisplacement(posSim_t_dim_id, msdTimes)
 
-## Run Langevin simulations
-function extendParams!(arenaParams::Dict)
-    bounds = arenaParams["bounds"]
-    arenaParams["volume"] = abs(bounds[1][2]-bounds[1][1])*abs(bounds[2][2]-bounds[2][1])
-    arenaParams["bperiod"] = [abs(bounds[1][2]-bounds[1][1]), abs(bounds[2][2]-bounds[2][1])]
-end
-extendParams!(arenaParams)
+# ## Run Langevin simulations
+# function extendParams!(arenaParams::Dict)
+#     bounds = arenaParams["bounds"]
+#     arenaParams["volume"] = abs(bounds[1][2]-bounds[1][1])*abs(bounds[2][2]-bounds[2][1])
+#     arenaParams["bperiod"] = [abs(bounds[1][2]-bounds[1][1]), abs(bounds[2][2]-bounds[2][1])]
+# end
+# extendParams!(arenaParams)
 
-@time langevinEnsemble = Theorist.runLangevinSims(5000, arenaParams, growthParams)
+# @time langevinEnsemble = Theorist.runLangevinSims(5000, arenaParams, growthParams)
 
-## Calculate msd for Langevin simulations
-@time timesLan_, msdLan_t = 
-    Theorist.msd(
-        langevinEnsemble, 
-        arenaParams,
-        (growthParams["waitTime"]+1, arenaParams["evolveTime"])
-    )
+# ## Calculate msd for Langevin simulations
+# @time timesLan_, msdLan_t = 
+#     Theorist.msd(
+#         langevinEnsemble, 
+#         arenaParams,
+#         (growthParams["waitTime"]+1, arenaParams["evolveTime"])
+#     )
 
-##
-thermalVals = Theorist.thermalValues(arenaParams)
-fricTstep = 1/thermalVals["γ"]
+# ##
+# thermalVals = Theorist.thermalValues(arenaParams)
+# fricTstep = 1/thermalVals["γ"]
 
-# fricTimes_ = 0:fricTstep:timesMSD_[end]
-fricTimes_ = range( 0, step=5*fricTstep, stop=(msdTimes[2]-msdTimes[1]) )
+# # fricTimes_ = 0:fricTstep:timesMSD_[end]
+# fricTimes_ = range( 0, step=5*fricTstep, stop=(msdTimes[2]-msdTimes[1]) )
 
-##
-using Plots
-pyplot()
-##
-using LaTeXStrings
+# ##
+# using Plots
+# pyplot()
+# ##
+# using LaTeXStrings
 
-##
-timesPar_ = 1:msdTimes[2]-msdTimes[1]
-p2 = plot(timesPar_, msdPart_t[2:end], label="particle simulation", legend=:bottomright, linewidth=2,
-    size=(400,300),
-    xticks = (fricTimes_, 5*(0:length(fricTimes_)-1)),
-    dpi=140)
-plot!(timesPar_, msdLan_t[2:end], label="Langevin simulation", linestyle=:dash, linewidth=2)
-xlabel!(L"t \quad [1/\gamma_0]")
-ylabel!(L"\left\langle x(t)^2 \right\rangle")
-title!(latexstring("\\rho="*string(growthParams["ρ"])))
-display(p2)
+# ##
+# timesPar_ = 1:msdTimes[2]-msdTimes[1]
+# p2 = plot(timesPar_, msdPart_t[2:end], label="particle simulation", legend=:bottomright, linewidth=2,
+#     size=(400,300),
+#     xticks = (fricTimes_, 5*(0:length(fricTimes_)-1)),
+#     dpi=140)
+# plot!(timesPar_, msdLan_t[2:end], label="Langevin simulation", linestyle=:dash, linewidth=2)
+# xlabel!(L"t \quad [1/\gamma_0]")
+# ylabel!(L"\left\langle x(t)^2 \right\rangle")
+# title!(latexstring("\\rho="*string(growthParams["ρ"])))
+# display(p2)
 

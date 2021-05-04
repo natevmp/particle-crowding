@@ -1,5 +1,5 @@
-include("../src/bmparticles.jl")
-include("../src/bmtheory.jl")
+include("../../src/bmparticles.jl")
+include("../../src/bmtheory.jl")
 
 using .BParts
 using .Theorist
@@ -14,10 +14,12 @@ pyplot()
 ##
 # files_f = glob("growingPop_multSims_rho0*.jld2", "./data/many_gp_50613208")
 # filesSims_f = glob(r"growingPop_multSims_rho0*/[0-9]/.jld", "./data/manyGP_02-16")
-filesParams_f = glob("growingPop_multSims_*params.jld", "./data/manyGP_02-16")
-filesSims_f = glob(glob"growingPop_multSims_*[0-9].jld", "./data/manyGP_02-16")
-# filesParams_f = glob("growingPop_multSims_*params.jld", "./data/manyGP_04-06")
-# filesSims_f = glob(glob"growingPop_multSims_*[0-9].jld", "./data/manyGP_04-06")
+# filesParams_f = glob("growingPop_multSims_*params.jld", "./data/manyGP_02-16")
+# filesSims_f = glob(glob"growingPop_multSims_*[0-9].jld", "./data/manyGP_02-16")
+filesParams_f = glob("growingPop_multSims_*params.jld", "./data/manyGP_04-06")
+filesSims_f = glob(glob"growingPop_multSims_*[0-9].jld", "./data/manyGP_04-06")
+# append!(filesParams_f, glob("growingPop_multSims_*params.jld", "./data/manyGP_04-06"))
+# append!(filesSims_f, glob(glob"growingPop_multSims_*[0-9].jld", "./data/manyGP_04-06"))
 
 ##
 params = load(filesParams_f[1])
@@ -66,15 +68,15 @@ fricTstep = 1/thermalVals["γ"]
 
 # fricTimes_ = 0:fricTstep:timesMSD_[end]
 fricTimes_ = range( 0, step=5*fricTstep, stop=(msdTimes[2]-msdTimes[1]) )
+timesPar_ = 1:msdTimes[2]-msdTimes[1]
 ##
 
 ## Save msd data
-# saveName = "data/FigData/msdAverageData_rho"*string(paramsGrowth["ρ"])*".jld"
-# save(saveName, "timesLan_", timesLan_, "msdLan_t", msdLan_t, "msdPart_t", msdPart_t, "fricTimes_", fricTimes_, "timesPar_", timesPar_, "ρ", paramsGrowth["ρ"])
+saveName = "data/FigData/msdAverageData_rho"*string(paramsGrowth["ρ"])*".jld"
+save(saveName, "timesLan_", timesLan_, "msdLan_t", msdLan_t, "msdPart_t", msdPart_t, "fricTimes_", fricTimes_, "timesPar_", timesPar_, "ρ", paramsGrowth["ρ"])
 
 ##
 
-timesPar_ = 1:msdTimes[2]-msdTimes[1]
 p2 = plot(timesPar_, msdPart_t[2:end], label="particle simulation", legend=:bottomright, linewidth=2,
     size=(400,300),
     xticks = (fricTimes_, 5*(0:length(fricTimes_)-1)),

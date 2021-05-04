@@ -31,6 +31,26 @@ function velocityAutoCorrelation(τ::Number, t::Number, E::Function, γ::Functio
 end
 
 
+
+function frictionFromParticleDensity(n::Real, σ::Real, E::Real)
+    √(π*E) * σ * n
+end
+
+function diffCoeffFromParticleDensity(n::Real, σ::Real, E::Real)
+    √(π*E^3) * σ * n
+end
+
+function msdTheory(t::Real, n::Real, σ::Real, E::Real)
+    γ = frictionFromParticleDensity(n, σ, E)
+    4E/γ * ( t - (1-exp(-γ*t))/γ )
+end
+
+# function msdTheory(t::Real, n::Real, σ::Real, E::Real)
+#     γ = frictionFromParticleDensity(n, σ, E)
+#     4E/γ * t
+# end
+
+
 # ====== System data and values ======
 function extendParams!(arenaParams::Dict)
     bounds = arenaParams["bounds"]
@@ -65,6 +85,7 @@ function thermalValues(params::Dict, growthFunc::Union{Function, Nothing}=nothin
         thermVals["ρ"] = ρ
         thermVals["DiffCoeff"] = DiffCoeff
     end
+    thermVals["sEq"] = √(E*π/2)
     return thermVals
 end
 

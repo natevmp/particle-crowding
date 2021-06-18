@@ -131,11 +131,11 @@ function runLangevinSims(runs, arenaParams::Dict, growthParams::Union{Dict, Noth
     E = s0^2 / 2
     println("Energy: "*string(E))
 
-    nDensity(t) = n0 / volume
     if isnothing(growthParams)
         ρ = 0
         k = n0
         waitTime = 0
+        nDensity(t) = n0 / volume
     else
         ρ = growthParams["ρ"]
         k = growthParams["k"]

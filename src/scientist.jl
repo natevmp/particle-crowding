@@ -244,22 +244,27 @@ function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, tspan::Tuple{Real,
     nCells = size(pos_t_dim_id)[3]
     tInds = Int( ceil(tspan[1]/tStep) ) : Int( floor(tspan[2]/tStep) )
     msd_t = Vector{Float64}(undef, length(tInds))
-
     sd_cid = Vector{Union{Float64, Missing}}(undef, size(pos_t_dim_id)[3])
     for (i,tInd) in enumerate(tInds)
-        sd_cid .=
-            [euclidean(pos_t_dim_id[tInd, :, cellInd], pos_t_dim_id[tInds[1], :, cellInd])^2
-            for cellInd in 1:nCells]
-        # println(typeof(sd_CID))
-        # println(sd_CID)
+        sd_cid .= [euclidean(pos_t_dim_id[tInd, :, cellInd], pos_t_dim_id[tInds[1], :, cellInd])^2
+            for cellInd in 1:nCells
+        ]
         msd_t[i] = mean(skipmissing(sd_cid))
-
     end
     return msd_t
 end
 
-function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, tspan::Tuple{Real, Real})
-    meanSquaredDisplacement(pos_t_dim_id, tspan, 1)
+function meanSquaredDisplacement(pos_t_dim_id::AbstractArray)
+    nCells = size(pos_t_dim_id,3)
+    msd_t = Vector{Float64}(undef, size(pos_t_dim_id,1))
+    sd_cid = Vector{Union{Float64, Missing}}(undef, size(pos_t_dim_id,3))
+    for t in 1:size(pos_t_dim_id,1)
+        sd_cid .= [euclidean(pos_t_dim_id[t, :, cellInd], pos_t_dim_id[1, :, cellInd])^2
+            for cellInd in 1:nCells
+        ]
+        msd_t[t] = mean(skipmissing(sd_cid))
+    end
+    return msd_t
 end
 
 function meanSquaredDisplacement(pos_t_dim_id::AbstractArray, bperiod_xy, tspan::Tuple{Real, Real})
@@ -295,4 +300,81 @@ function photographImagePositions(pos_dim_id::AbstractArray, xBounds::Tuple{Real
     posImage_dim_id[1,:] = (x -> toBoundsPeriodic(x, xBounds)).(pos_dim_id[1,:])
     posImage_dim_id[2,:] = (x -> toBoundsPeriodic(x, xBounds)).(pos_dim_id[2,:])
     return posImage_dim_id
+end
+
+
+
+# ========== analysis ==========
+
+function getAngle(v2::AbstractVector, v1::AbstractVector)
+    θ1 = atan(v1[2], v1[1])
+    θ2 = atan(v2[2], v2[1])
+    atan( sin(θ2-θ1), cos(θ2-θ1) )
+end
+
+function particleAngleChanges(vel_t_dim)
+    dθ_ = Float64[]
+    for tInd in 2:size(vel_t_dim, 1)
+        if vel_t_dim[tInd, 1] != vel_t_dim[tInd-1, 1]
+            dθ = getAngle(vel_t_dim[tInd, :], vel_t_dim[tInd-1, :])
+            push!(dθ_, dθ)
+        end
+    end
+    return dθ_
+end
+
+function ensembleAngleChanges(vel_t_dim_id)
+    dθ_ = Float64[]
+    for cid in 1:size(vel_t_dim_id, 3)
+        dθ_cid = particleAngleChanges(@view vel_t_dim_id[:,:,cid])
+        append!(dθ_, dθ_cid)
+    end
+    return dθ_
+end
+
+function particleFreePaths(vel_t_dim, dt=1)
+    freePaths_ = Float64[]
+    pathCur = 0.
+    for tInd in 2:size(vel_t_dim, 1)
+        if vel_t_dim[tInd, 1] == vel_t_dim[tInd-1, 1]
+            pathCur += norm(vel_t_dim[tInd, :]) * dt
+        else
+            pathCur += norm(vel_t_dim[tInd, :]) * dt/2
+            push!(freePaths_, pathCur)
+            pathCur = 0.
+        end
+    end
+    return freePaths_
+end
+
+function particleFreePaths(vel_t_dim, times_t::AbstractVector)
+    freePaths_ = Float64[]
+    pathCur = 0.
+    for tInd in 2:length(times_t)
+        dt = (times_t[tInd]-times_t[tInd-1])
+        if vel_t_dim[tInd, 1] == vel_t_dim[tInd-1, 1]
+            pathCur += norm(vel_t_dim[tInd, :]) * dt
+        else
+            pathCur += norm(vel_t_dim[tInd, :]) * dt/2
+            push!(freePaths_, pathCur)
+            pathCur = 0.
+        end
+    end
+    return freePaths_
+end
+
+function ensembleFreePaths(vel_t_dim_id, dt::Real=1)
+    freePaths_ = Float64[]
+    for cid in 1:size(vel_t_dim_id, 3)
+        append!(freePaths_, particleFreePaths((@view vel_t_dim_id[:,:,cid]), dt))
+    end
+    return freePaths_
+end
+
+function ensembleFreePaths(vel_t_dim_id, times_t::AbstractVector)
+    freePaths_ = Float64[]
+    for cid in 1:size(vel_t_dim_id, 3)
+        append!(freePaths_, particleFreePaths((@view vel_t_dim_id[:,:,cid]), times_t))
+    end
+    return freePaths_
 end

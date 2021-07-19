@@ -34,8 +34,7 @@ function randArenaEvolve(
         evolveGrowthParams =
             Dict(
                 "rateFunc"=> n->logisticRate(n, growthParams["ρ"], growthParams["k"]),
-                "growthFunc"=> t->logisticGrowth(t, growthParams["ρ"], growthParams["k"],
-                                                    arenaParams["n0"]),
+                "growthFunc"=> t->logisticGrowth(t, growthParams["ρ"], growthParams["k"], arenaParams["n0"]),
                 "radius"=> arenaParams["radius"],
                 "randGrowth"=> growthParams["randGrowth"],
                 "waitTime"=>growthParams["waitTime"]

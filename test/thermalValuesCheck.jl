@@ -9,9 +9,9 @@ pyplot()
 ##
 arenaParams = 
     Dict(
-        "n0"=>500,
+        "n0"=>10000,
         "evolveTime"=>3500,
-        "bounds"=>((0.,5),(0.,5)), 
+        "bounds"=>((0.,32),(0.,32)), 
         "radius"=>0.08, 
         "speed"=>0.02,
         "timeStep"=> 0.4

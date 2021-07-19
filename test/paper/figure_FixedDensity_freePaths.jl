@@ -103,7 +103,7 @@ figError = plot(
 )
 annotate!(
     [ 
-        ( mfpRel_sim[i], mfpErrorRel_sim[i]+0.1, Plots.text("ρ="*string(round(ρ_sim[i], digits=2)), 9) ) for i in 1:length(ρ_sim)
+        ( mfpRel_sim[i], mfpErrorRel_sim[i]+0.1, Plots.text(L"c="*string(round(ρ_sim[i], digits=2)), 9) ) for i in 1:length(ρ_sim)
     ]
 )
 ylims!(0,2.4)
@@ -155,7 +155,7 @@ for simId in 1:length(ρ_sim)
 
     plot!(
         _tCorr / units[:t], vCorrPar_t / (units[:x]/units[:t])^2, 
-        label="ρ="*string(round(ρ_sim[simId], digits=2)),
+        label=L"c="*string(round(ρ_sim[simId], digits=2)),
         color=palette[simId],
         linewidth=0.9,
     )

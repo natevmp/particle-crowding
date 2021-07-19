@@ -131,21 +131,21 @@ function runLangevinSims(runs, arenaParams::Dict, growthParams::Union{Dict, Noth
     E = s0^2 / 2
     println("Energy: "*string(E))
 
-    if isnothing(growthParams)
-        ρ = 0
-        k = n0
-        waitTime = 0
-        nDensity(t) = n0 / volume
-    else
-        ρ = growthParams["ρ"]
-        k = growthParams["k"]
-        nDensity(t) = logisticGrowth(t, ρ, k, n0) / volume
-        waitTime = growthParams["waitTime"]
-    end
+
+    ρ = isnothing(growthParams) ? 0 : growthParams["ρ"]
+    k = isnothing(growthParams) ? n0 : growthParams["k"]
+    waitTime = isnothing(growthParams) ? 0 : growthParams["waitTime"]
+
+    nFixedDensity(t) = n0 / volume
+    nGrowthDensity(t) = logisticGrowth(t, ρ, k, n0) / volume
 
     u0 = [s0*cos(π), s0*sin(π)]
     tspan = (0., evolveTime)
-    langProb = brownianLangevin(nDensity, E, σc, u0, tspan, wait=waitTime);
+
+    langProb = brownianLangevin(
+        isnothing(growthParams) ? nFixedDensity : nGrowthDensity, 
+        E, σc, u0, tspan, wait=waitTime
+    )
 
     function randSpeedProblem(prob,i,repeat)
         # s = rand(  Rayleigh( norm(prob.u0)*√(2/π) )  )

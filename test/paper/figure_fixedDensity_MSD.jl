@@ -5,15 +5,15 @@ using .Theorist
 
 ## ==================== Load data ====================
 
-# fileNames = glob("simResultFixedDensity_*_msd.jld2", "./data/FixedDensity")
-fileNames = [
-    "./data/FixedDensity/21-05-10/simResultFixedDensity_0.01_msd.jld2",
-    "./data/FixedDensity/21-05-10/simResultFixedDensity_0.05_msd.jld2",
-    "./data/FixedDensity/21-05-10/simResultFixedDensity_0.1_msd.jld2",
-    "./data/FixedDensity/21-05-10/simResultFixedDensity_0.2_msd.jld2",
-    "./data/FixedDensity/21-05-10/simResultFixedDensity_0.3_msd.jld2",
-    "./data/FixedDensity/21-05-10/simResultFixedDensity_0.5_msd.jld2",
-]
+fileNames = glob("simResultFixedDensity_*_msd.jld2", "./data/FixedDensity/21-05-10")
+# fileNames = [
+#     "./data/FixedDensity/21-05-10/simResultFixedDensity_0.01_msd.jld2",
+#     "./data/FixedDensity/21-05-10/simResultFixedDensity_0.05_msd.jld2",
+#     "./data/FixedDensity/21-05-10/simResultFixedDensity_0.1_msd.jld2",
+#     "./data/FixedDensity/21-05-10/simResultFixedDensity_0.2_msd.jld2",
+#     "./data/FixedDensity/21-05-10/simResultFixedDensity_0.3_msd.jld2",
+#     "./data/FixedDensity/21-05-10/simResultFixedDensity_0.5_msd.jld2",
+# ]
 ##
 ρ_sim = Float64[]
 _t_Sim = Vector{Float64}[]
@@ -62,7 +62,7 @@ for (i,simId) in enumerate([1,2,3,6])
         color=palette[i],
         linealpha=0.5,
         linestyle=:solid,
-        label="ρ="*string(round(ρ_sim[simId],digits=3))*"\nparticle sim"
+        label="c="*string(round(ρ_sim[simId],digits=3))*"\nparticle sim"
     )
     # plot!(_t, msdLan_t_Sim[i],
     plot!(_t_Sim[simId], msdTheory_sim_T[simId],
@@ -117,7 +117,7 @@ plot!(ρ_sim, γTheory_Sim,
     markershape=:auto,
     label="Langevin theory"
 )
-xlabel!(L"\rho")
+xlabel!(L"c")
 ylabel!(L"\gamma")
 display(fig2)
 figname = "fixedDensity_frictionDensityDependence.pdf"
@@ -140,7 +140,7 @@ for simId in 1:6
 
     plot!(
         _tCu, msd_tCu,
-        label="ρ="*string(round(ρ_sim[simId], digits=2)),
+        label=L"c="*string(round(ρ_sim[simId], digits=2)),
         color=palette[simId],
     )
 

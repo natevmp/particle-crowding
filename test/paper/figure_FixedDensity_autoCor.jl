@@ -7,15 +7,9 @@ using LaTeXStrings
 
 ## ===== Load data =====
 
-files_f = [
-    "./data/FixedDensity/simResultFixedDensity_0.01.jld2",
-    "./data/FixedDensity/simResultFixedDensity_0.05.jld2",
-    "./data/FixedDensity/simResultFixedDensity_0.1.jld2",
-    "./data/FixedDensity/simResultFixedDensity_0.2.jld2",
-    "./data/FixedDensity/simResultFixedDensity_0.3.jld2",
-    "./data/FixedDensity/simResultFixedDensity_0.5.jld2",
-]
+files_f = glob("simResultFixedDensity_*.jld2", "./data/FixedDensity/21-05-10")
 
+##
 volumeDens(n, r, v) = n*π*r^2/v
 ρ_sim = Float64[]
 thermVals_sim = Dict[]
@@ -93,6 +87,6 @@ ylims!(0, 1)
 display(figVelCor)
 
 figname = "figures/2021/fixedDensity_velAutoCor.pdf"
-savefig(figVelCor, figname)
+# savefig(figVelCor, figname)
 
 
